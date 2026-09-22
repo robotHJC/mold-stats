@@ -276,6 +276,8 @@ table.rt td.drill.on::after{content:' ▾'}
 .drop .di{font-size:30px;margin-bottom:6px;line-height:1}
 .drop .dt{font-weight:700;font-size:15px}
 .drop .ds{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.65}
+.drop .wxwarn{font-size:12.5px;color:#8a5a00;background:#fff6e0;border:1px solid #ffd98a;border-radius:8px;padding:10px 12px;margin:12px auto 0;max-width:540px;text-align:left;line-height:1.75}
+.drop .wxwarn b{color:#7a4d00}
 .bar{height:6px;background:#e3e8ef;border-radius:6px;overflow:hidden;margin:14px auto 7px;max-width:440px}
 .bar i{display:block;height:100%;background:var(--brand);transition:width .2s}
 .pt{font-size:12px;color:var(--muted)}
@@ -2905,12 +2907,27 @@ function renderSource(){
          '下面每张表列出的「可分组 / 可做时间轴 / 可算指标」都是<b>那张表真实有的列</b>。</div>');
 
   /* 上传区 */
+  /* 内置浏览器（微信/QQ/钉钉…）普遍不给网页选文件的权限，得先告诉用户，
+     否则他会以为页面坏了、反复点那个没反应的框。 */
+  var ua = navigator.userAgent;
+  var iab = /MicroMessenger/i.test(ua) ? '微信'
+          : /wxwork/i.test(ua) ? '企业微信'
+          : /DingTalk/i.test(ua) ? '钉钉'
+          : /\bQQ\//i.test(ua) ? 'QQ'
+          : /AlipayClient/i.test(ua) ? '支付宝'
+          : /Weibo/i.test(ua) ? '微博'
+          : /aweme|BytedanceWebview/i.test(ua) ? '抖音' : '';
   h.push('<div class="drop" id="dropZone">' +
     '<div class="di">📂</div>' +
     '<div class="dt">' + (WB ? '换一个 Excel 文件' : '把 Excel 拖进来，或点这里选择文件') + '</div>' +
-    '<div class="ds">支持 .xlsx / .xlsm（Excel、WPS 导出的都行）· 62 MB 也能读 · ' +
-    '手机可以从「文件」或微信/QQ 里选</div>' +
-    '<input type="file" id="fileInput" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>' +
+    '<div class="ds">支持 .xlsx / .xlsm（Excel、WPS 导出的都行）· 62 MB 也能读</div>' +
+    (iab ? '<div class="wxwarn">⚠ 你现在是在 <b>' + iab + '内置浏览器</b>里打开的。' +
+      '这类内置浏览器<b>常常不允许网页选文件</b>，点了没反应多半是这个原因 —— 不是页面坏了。<br>' +
+      '解决办法：点右上角 <b>···</b> → <b>在浏览器打开</b>（Safari / Chrome / 系统浏览器），再回来选文件。' +
+      (iab === '微信' ? '<br>想选的 Excel：在聊天里长按它 → <b>保存到手机</b>（存到「下载」），浏览器里就能找到了。' : '') +
+      '</div>' : '') +
+    '<input type="file" id="fileInput" accept="' +
+      (iab ? '*/*' : '.xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') + '" hidden>' +
     '<div id="loadProg" hidden></div>' +
     '</div>');
 
