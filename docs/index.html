@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f6feb">
-<title>模具车间表格统计器 · 界面原型</title>
+<title>模具车间表格统计器</title>
 <style>
 /* ============================================================
    设计令牌 —— 工业场景：高对比、大触控、弱装饰
@@ -2281,13 +2281,10 @@ $('#expXlsx').onclick = exportXlsx;
 $('#expCsv').onclick = exportCsv;
 $('#expPdf').onclick = exportPdf;
 $('#expTpl').onclick = function (){
-  alert('原型演示：真实版本会把「看哪张表 + 时间轴/粒度 + 分组 + 指标 + 筛选」存成模板，下个月换新表一键复用。');
+  alert('「常用统计方式」里现在是这张表自动生成的建议——按月×装配人、按季×班组等，点一下直接套用。\n\n把你自己调好的那套存下来、下个月换新表一键复用：这个还没做，等你定。\n要只存在这台电脑上（换手机就没了），还是跟着文件走？');
 };
 $('#runStat').onclick = function (){ go('result'); };
 $('#toggleLink').onclick = function (){ S.link = !S.link; renderStat(); };
-$('#btnOpen').onclick = function (){
-  alert('原型演示：真实版本这里会打开系统选文件对话框（桌面端）或文件选择器（手机端）。');
-};
 $('#toggleAll').onclick = function (){
   var all = RULES.reduce(function (a, s){ return a.concat(s.items.map(function (i){ return i.n; })); }, []);
   S.rulesOn = (S.rulesOn.length === all.length) ? [] : all.slice();
