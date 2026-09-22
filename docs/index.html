@@ -272,6 +272,19 @@ table.rt th.del-th,table.rt td.del-td{width:40px;min-width:40px;padding:3px 6px;
 .rowdel:hover,.rowdel:active{background:#fdeceb;color:var(--bad)}
 .btn.deln{background:#fdeceb;border-color:#f2c3bf;color:#8c2f27}
 
+/* ── 细分筛选条：每一组下面那一排可点的值 ── */
+.gr-sub{padding:10px 14px;border-top:1px solid var(--line2);background:#fbfcfe;display:flex;flex-direction:column;gap:8px}
+.sd{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sd-n{font-size:12px;color:var(--muted);flex:0 0 auto;margin-right:3px}
+.sdv{border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 11px;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--ink2);line-height:1.45}
+.sdv b{margin-left:5px;font-family:var(--mono);font-size:11.5px;color:var(--muted);font-weight:600}
+.sdv:hover{border-color:var(--brand);color:var(--brand)}
+.sdv.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.sdv.on b{color:#dbe9ff}
+.sd-clr{border:0;background:transparent;color:var(--bad);font-size:12px;cursor:pointer;padding:3px 7px;font-family:inherit;border-radius:6px}
+.sd-clr:hover{background:#fdeceb}
+.gr-hd .n b.on{color:var(--brand);font-size:13.5px}
+
 .bars{padding:14px 15px}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
 .bar-row .lb{flex:0 0 76px;font-size:12.5px;text-align:right;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -475,6 +488,20 @@ window.addEventListener('error', function (ev) {
             <div class="ms-list" id="colList"></div>
           </div>
           <div class="picked" id="colPicked" style="margin-top:12px"></div>
+
+          <div class="field" style="margin-top:18px">
+            <div class="field-label">再按什么细分
+              <span class="tag gray">可选 —— 每一组下面会出现一排可点的筛选项</span></div>
+            <div class="opt-row">
+              <select id="subSel"></select>
+              <button class="btn sm" id="addSub">+ 添加</button>
+            </div>
+            <div class="picked" id="subPicked" style="margin-top:9px"></div>
+            <div class="sub" style="margin-top:8px">
+              日期列可以选「<b>月份</b>」—— 这样每个装配人下面就会出现
+              <b>1月 20 · 2月 35 · 3月 18</b> 这样一排，点一下就只看那个月，数量也一起显示。
+            </div>
+          </div>
         </div>
       </div>
 
@@ -945,6 +972,35 @@ function rowHasBlank(r, cols){
   return false;
 }
 
+/* ── 细分列：每个分组下面那一排可点的筛选项 ──
+   普通列直接取值；日期列可以按「月份」取 —— 这就是「某个人某个月做了多少」。 */
+var MISSSUB = '\u0000';                   /* 内部哨兵，代表「未填」 */
+function subKey(d){ return d.grain ? (d.col + '\u0001' + d.grain) : d.col; }
+function subLabel(d){ return d.grain ? (d.col + ' · ' + GRAIN_NAME[d.grain]) : d.col; }
+function subVal(d, r){
+  var v = r[d.col];
+  if (d.grain){
+    var k = grainKey(v, d.grain);
+    return (k == null || k === '') ? null : String(k);
+  }
+  return isBlank(v) ? null : String(v);
+}
+function subShow(d, k){
+  if (k === null) return '未填';
+  return d.grain ? grainShort(String(k), d.grain) : String(k);
+}
+function subSortKey(d, k){
+  return (k === null) ? '\uffff' : String(k);   /* 未填排到最后 */
+}
+
+/* 可选的细分项：每个普通列 + 每个日期列的「月份」 */
+function subOptions(src){
+  var out = [];
+  colsOf().forEach(function (c){ out.push({ col:c, grain:null }); });
+  (src.timeCols || []).forEach(function (c){ out.push({ col:c.k, grain:'month' }); });
+  return out;
+}
+
 /* 「行数」不依赖具体某一列，所以名字里不带列名 */
 function aggKey(col, agg){ return agg === 'rows' ? '行数' : col + ' · ' + AGG_NAME[agg]; }
 
@@ -1359,6 +1415,8 @@ var S = {
   splitMulti:true,
   primary:'装配人',                      /* 主索引：结果表的第一列，一行 = 一个装配人 */
   showCols:['模具编号','零件名称','物料编码','工序','工序名称','装配完成时间'],
+  subDims:[],                            /* 细分列：每个分组下面那一排可点的筛选项 */
+  subSel:{},                             /* 每个分组各自选了哪些细分值：{组值: {维序: {值:1}}} */
   openSet:{},                            /* 分组卡片的展开状态 */
   groupBy:[],                            /* 附加分组：在主索引之后再细分 */
   aggs:[{ col:'模具编号', agg:'uniq' },     /* 装配套数：一套模具多道工序只算一套 */
@@ -1457,8 +1515,16 @@ function applyCfg(cfg){
   if (cfg.showCols) S.showCols = cfg.showCols.slice();
   else if (cfg.src !== prevSrc) S.showCols = defaultShowCols(src);
 
-  /* 换了表，之前手动删掉的那些就不算数了 */
-  if (cfg.src !== prevSrc) S.deleted = {};
+  /* 细分列：默认给「时间列的月份」——「某个人某个月做了多少」是第一眼就要看的 */
+  if (cfg.subDims) S.subDims = cfg.subDims.slice();
+  else if (cfg.src !== prevSrc){
+    S.subDims = (sd.timeCol && (src.timeCols || []).some(function (c){ return c.k === sd.timeCol; }))
+      ? [{ col: sd.timeCol, grain: 'month' }] : [];
+  }
+
+  /* 换了表，之前手动删掉的、以及各组选的细分筛选都不算数了 */
+  if (cfg.src !== prevSrc){ S.deleted = {}; }
+  S.subSel = {};
 
   if (UI_SIMPLE){
     /* 时间轴 / 附加分组 / 筛选条件先屏蔽 —— 留着代码，改 UI_SIMPLE 就回来 */
@@ -1605,6 +1671,23 @@ function renderStat(){
   /* 第 3 步：要统计哪些列（简化模式的核心） */
   var adv = $('#advCards'); if (adv) adv.hidden = UI_SIMPLE;
   if (UI_SIMPLE) renderColPicker(src, cols);
+
+  /* 细分列 —— 每一组下面那一排可点的筛选项 */
+  var ss = $('#subSel');
+  if (ss){
+    ss.innerHTML = subOptions(src).map(function (o){
+      return '<option value="' + esc(subKey(o)) + '">' + esc(subLabel(o)) + '</option>';
+    }).join('');
+  }
+  var sp = $('#subPicked');
+  if (sp){
+    sp.innerHTML = S.subDims.length
+      ? S.subDims.map(function (d, i){
+          return '<span class="chip sel" data-del-sub="' + i + '"><span>' + esc(subLabel(d)) +
+            '</span><span class="x">×</span></span>';
+        }).join('')
+      : '<span class="sub">不选也行 —— 不选就是每个组一整块平铺出来</span>';
+  }
 
   /* 分组：时间维度独立一个开关，其余列从池子里加 */
   var gp = '';
@@ -2095,34 +2178,101 @@ function renderSimpleResult(){
       ' 条重新数的。点「恢复已删除的」可以放回来。</div></div>');
   }
 
+  /* 默认只展开前几组 —— 列看得见（满足「选中的列一定会出现」），
+     但页面不会一下子上千行。想全看就点「全部展开」。 */
+  var openFirst = 3;
+  var allShown = [];          /* 各组细分筛完之后的记录，按组顺序 —— 导出就照这个来 */
   grps.forEach(function (g, i){
-    var open = (S.openSet[g.key] === undefined) ? true : !!S.openSet[g.key];
+    var open = (S.openSet[g.key] === undefined) ? (i < openFirst) : !!S.openSet[g.key];
+
+    /* 细分：先算好每个细分列在这一组里的取值分布，再按选中的筛一遍。
+       每个组各选各的 —— 「在某个装配人下面看某个月」就是这个意思。 */
+    var sel = S.subSel[g.key] || {};
+    var chips = [];
+    var shown = g.rows;
+    if (S.subDims.length){
+      S.subDims.forEach(function (d, di){
+        var cnt = {}, ord = [];
+        g.rows.forEach(function (r){
+          var v = subVal(d, r);
+          var k = (v === null) ? MISSSUB : v;
+          if (cnt[k] === undefined){ cnt[k] = 0; ord.push(k); }
+          cnt[k]++;
+        });
+        ord.sort(function (a, b){
+          return subSortKey(d, a === MISSSUB ? null : a)
+            .localeCompare(subSortKey(d, b === MISSSUB ? null : b), 'zh-CN', { numeric: true });
+        });
+        chips.push({ d:d, di:di, cnt:cnt, ord:ord });
+      });
+      shown = g.rows.filter(function (r){
+        for (var di = 0; di < S.subDims.length; di++){
+          var picked = sel[di];
+          if (!picked || !Object.keys(picked).length) continue;
+          var v = subVal(S.subDims[di], r);
+          if (!picked[(v === null) ? MISSSUB : v]) return false;
+        }
+        return true;
+      });
+    }
+    var filtered = (shown.length !== g.rows.length);
+    allShown = allShown.concat(shown);
+
     h.push('<div class="gr' + (g.miss ? ' misskey' : '') + '">' +
       '<div class="gr-hd" data-gr-toggle="' + i + '">' +
         '<span class="nm">' + (g.miss ? '（' + esc(S.primary || '主列') + '为空）' : esc(g.key)) + '</span>' +
-        '<span class="n">' + g.rows.length + ' 条</span>' +
+        '<span class="n">' + (filtered
+            ? '<b class="on">' + shown.length + '</b> / ' + g.rows.length + ' 条'
+            : g.rows.length + ' 条') + '</span>' +
         '<span class="sp"></span>' +
         '<span class="caret">' + (open ? '▾ 收起' : '▸ 展开') + '</span>' +
       '</div>');
+
     if (open && drawn < CAP){
-      var body = g.rows.slice(0, CAP - drawn);
-      drawn += body.length;
-      h.push('<div class="gr-bd tw"><table class="rt"><thead><tr><th class="del-th"></th>' +
-        cols.map(function (c){ return '<th>' + esc(c) + '</th>'; }).join('') +
-        '</tr></thead><tbody>' +
-        body.map(function (r){
-          var bad = rowHasBlank(r, chkCols);
-          return '<tr>' +
-            '<td class="del-td">' + (bad
-              ? '<button class="rowdel" data-del-row="' + esc(r.__rid) + '" ' +
-                'title="这条有空缺 —— 点一下从统计里去掉（不动原文件）">×</button>'
-              : '') + '</td>' +
-            cols.map(function (c){
-              var v = r[c];
-              return isBlank(v) ? '<td><span class="miss">空缺</span></td>'
-                                : '<td>' + esc(String(v)) + '</td>';
-            }).join('') + '</tr>';
-        }).join('') + '</tbody></table></div>');
+      /* 细分筛选条 —— 想要哪个值点哪个，后面就是它的条数 */
+      if (chips.length){
+        h.push('<div class="gr-sub">' + chips.map(function (c){
+          return '<div class="sd">' +
+            '<span class="sd-n">' + esc(subLabel(c.d)) + '</span>' +
+            c.ord.map(function (k){
+              var miss = (k === MISSSUB);
+              var on = sel[c.di] && sel[c.di][k];
+              return '<button class="sdv' + (on ? ' on' : '') + '"' +
+                ' data-sub-g="' + i + '" data-sub-d="' + c.di + '"' +
+                (miss ? ' data-sub-miss="1"' : ' data-sub-v="' + esc(k) + '"') +
+                ' title="点一下只看这个值；再点一下取消">' +
+                esc(subShow(c.d, miss ? null : k)) + '<b>' + c.cnt[k] + '</b></button>';
+            }).join('') +
+            ((sel[c.di] && Object.keys(sel[c.di]).length)
+              ? '<button class="sd-clr" data-sub-clr="' + i + '" data-sub-d="' + c.di + '">清除</button>'
+              : '') +
+            '</div>';
+        }).join('') + '</div>');
+      }
+
+      if (!shown.length){
+        h.push('<div class="gr-bd"><div class="empty"><div class="e">▦</div>' +
+          '这个筛选条件下没有记录 —— 点上面的「清除」或再点一下那个筛选值</div></div>');
+      } else {
+        var body = shown.slice(0, CAP - drawn);
+        drawn += body.length;
+        h.push('<div class="gr-bd tw"><table class="rt"><thead><tr><th class="del-th"></th>' +
+          cols.map(function (c){ return '<th>' + esc(c) + '</th>'; }).join('') +
+          '</tr></thead><tbody>' +
+          body.map(function (r){
+            var bad = rowHasBlank(r, chkCols);
+            return '<tr>' +
+              '<td class="del-td">' + (bad
+                ? '<button class="rowdel" data-del-row="' + esc(r.__rid) + '" ' +
+                  'title="这条有空缺 —— 点一下从统计里去掉（不动原文件）">×</button>'
+                : '') + '</td>' +
+              cols.map(function (c){
+                var v = r[c];
+                return isBlank(v) ? '<td><span class="miss">空缺</span></td>'
+                                  : '<td>' + esc(String(v)) + '</td>';
+              }).join('') + '</tr>';
+          }).join('') + '</tbody></table></div>');
+      }
     }
     h.push('</div>');
   });
@@ -2130,6 +2280,9 @@ function renderSimpleResult(){
     h.push('<div class="card"><div class="card-b sub">屏幕上只画了前 <b>' + CAP +
       '</b> 条。导出 Excel / CSV 拿到的还是<b>全部 ' + total + '</b> 条。</div></div>');
   }
+  /* 导出 = 屏幕上筛出来的那些（含各组细分筛选），所见即所得 */
+  S.last.rowsOut = allShown;
+  S.last.subFiltered = (allShown.length !== all.length);
   $('#simpleResult').innerHTML = h.join('');
 }
 
@@ -2563,6 +2716,10 @@ function metaLines(){
     lines.push('以哪一列为主：' + (S.primary || '（未选）'));
     lines.push('统计的列：' + ((L.cols && L.cols.length) ? L.cols.join('、') : '（未选）'));
     lines.push('分组：' + ((L.groups && L.groups.length) || 0) + ' 组');
+    if (L.subFiltered){
+      lines.push('细分筛选：部分组设了筛选，导出的就是这些组筛出来的 ' +
+        ((L.rowsOut || []).length) + ' 条（不是全部）');
+    }
     lines.push('去重：没有做任何去重 —— 一条原始记录就是一行结果');
     lines.push('空缺：单元格为空时写「空缺」，不做任何推测或填充');
     lines.push('手动删除：' + (Object.keys(S.deleted || {}).length
@@ -2602,7 +2759,7 @@ function metaLines(){
 function exportPayload(){
   /* 简化模式：一张表就够 —— 主列 + 要看的列，一行一条原始记录（空缺写「空缺」） */
   if (UI_SIMPLE){
-    var rows = (S.last && S.last.rows) || [];
+    var rows = ((S.last && S.last.rowsOut) || (S.last && S.last.rows) || []);
     var cols = (S.last && S.last.cols) || [];
     var cell = function (v){ return isBlank(v) ? '空缺' : String(v); };
     var head = [S.primary || '记录'].concat(cols);
@@ -3126,6 +3283,33 @@ document.addEventListener('click', function (e){
     renderResult(); return;
   }
 
+  /* ── 细分筛选：点一个值只看它，再点一下取消（每个组各选各的） ── */
+  if ((el = e.target.closest('[data-sub-g]'))){
+    var sg = (S.last && S.last.groups) ? S.last.groups[+el.dataset.subG] : null;
+    if (sg){
+      var sk = el.dataset.subMiss ? MISSSUB : el.dataset.subV;
+      var sd0 = +el.dataset.subD;
+      S.subSel[sg.key] = S.subSel[sg.key] || {};
+      var m0 = S.subSel[sg.key][sd0] = S.subSel[sg.key][sd0] || {};
+      if (m0[sk]) delete m0[sk]; else m0[sk] = 1;
+      renderResult();
+    }
+    return;
+  }
+  if ((el = e.target.closest('[data-sub-clr]'))){
+    var sg2 = (S.last && S.last.groups) ? S.last.groups[+el.dataset.subClr] : null;
+    if (sg2 && S.subSel[sg2.key]){
+      delete S.subSel[sg2.key][+el.dataset.subD];
+      renderResult();
+    }
+    return;
+  }
+  if ((el = e.target.closest('[data-del-sub]'))){
+    S.subDims.splice(+el.dataset.delSub, 1);
+    S.subSel = {};
+    renderStat(); return;
+  }
+
   /* ── 简化模式：分组展开／收起 ── */
   if ((el = e.target.closest('[data-gr-toggle]'))){
     var gs = (S.last && S.last.groups) || [];
@@ -3273,6 +3457,18 @@ on('#expXlsx', exportXlsx);
 on('#expCsv', exportCsv);
 on('#expPdf', exportPdf);
 on('#runStat', function (){ go('result'); });
+on('#addSub', function (){
+  var el = $('#subSel');
+  if (!el || !el.value) return;
+  var parts = el.value.split('\u0001');
+  var d = parts.length > 1 ? { col:parts[0], grain:parts[1] } : { col:parts[0] };
+  var k = subKey(d);
+  if (S.subDims.length < 3 && !S.subDims.some(function (x){ return subKey(x) === k; })){
+    S.subDims.push(d);
+  }
+  S.subSel = {};
+  renderStat();
+});
 on('#addAgg', function (){
   var colEl = $('#aggCol'), kindEl = $('#aggKind');
   if (!colEl || !kindEl || !colEl.value) return;
@@ -3788,9 +3984,14 @@ function defaultsFor(t){
   if (addable) aggs.push({ col: addable.name, agg: 'sum' });
   if (!aggs.length && cand.length) aggs.push({ col: cand[0].name, agg: 'rows' });
 
-  /* 时间轴：优先「完工/完成/交模/送样」，其次「计划/截止」，避开主索引那一列 */
+  /* 时间轴：优先「完工/完成」，其次「交模/送样」，再其次「计划/截止」。
+     两个坑都踩过：
+       · 「交模时间」这种列在工序级表里常常整列是空的 —— 排前面就一个有用月份都没有
+       · 「计划装配完成时间」也含「装配完成」四个字，会被误当成完工日 —— 必须排掉计划类 */
   var tnames = times.map(function (x){ return x.k; }).filter(function (k){ return k !== primary; });
-  var tpick = tnames.filter(function (k){ return /完工|完成|交模|送样/.test(k); })[0]
+  var isPlanCol = function (k){ return /^(计划|预计|要求|客户)/.test(k); };
+  var tpick = tnames.filter(function (k){ return /完成|完工/.test(k) && !isPlanCol(k); })[0]
+           || tnames.filter(function (k){ return /交模|送样|交付/.test(k) && !isPlanCol(k); })[0]
            || tnames.filter(function (k){ return /计划|截止|要求/.test(k); })[0]
            || tnames[0] || '';
 
