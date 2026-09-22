@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#1f6feb">
+<!-- 单文件应用最怕「改了没生效」。这三行让微信/手机/局域网服务器尽量别拿旧副本。
+     GitHub Pages 对 index.html 本来就是每次回源校验的，关键是浏览器别拿本地缓存。 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>模具车间表格统计器</title>
 <style>
 /* ============================================================
@@ -272,6 +277,13 @@ table.rt th.del-th,table.rt td.del-td{width:40px;min-width:40px;padding:3px 6px;
 .rowdel:hover,.rowdel:active{background:#fdeceb;color:var(--bad)}
 .btn.deln{background:#fdeceb;border-color:#f2c3bf;color:#8c2f27}
 
+/* ── 还差几步的提醒 ── */
+.needtip{margin:0 0 11px;padding:11px 14px;border-radius:var(--r);background:#fff6e0;border:1px solid #ffd98a;color:#8a5a00;font-size:13px;line-height:1.85}
+.needtip b{color:#7a4d00}
+.card.need{border-color:#f3c98b;box-shadow:0 0 0 3px rgba(255,217,138,.3)}
+.card.need .card-h{background:#fffaf0}
+select.ph{color:var(--muted)}
+
 /* ── 细分筛选条：每一组下面那一排可点的值 ── */
 .gr-sub{padding:10px 14px;border-top:1px solid var(--line2);background:#fbfcfe;display:flex;flex-direction:column;gap:8px}
 .sd{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -284,6 +296,53 @@ table.rt th.del-th,table.rt td.del-td{width:40px;min-width:40px;padding:3px 6px;
 .sd-clr{border:0;background:transparent;color:var(--bad);font-size:12px;cursor:pointer;padding:3px 7px;font-family:inherit;border-radius:6px}
 .sd-clr:hover{background:#fdeceb}
 .gr-hd .n b.on{color:var(--brand);font-size:13.5px}
+
+/* ── 原表核对按钮 ── */
+.vfbtn{border:1px solid var(--line);background:#fff;border-radius:6px;padding:3px 9px;font-size:11.5px;cursor:pointer;font-family:inherit;color:var(--ink2);white-space:nowrap}
+.vfbtn:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-bg)}
+
+/* ── 原表核对弹层 ── */
+.modal{position:fixed;inset:0;z-index:60}
+.modal-bd{position:absolute;inset:0;background:rgba(20,30,45,.42)}
+.modal-panel{position:absolute;inset:24px;background:#fff;border-radius:var(--r);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(16,26,40,.3)}
+.modal-hd{display:flex;align-items:center;gap:10px;padding:12px 15px;border-bottom:1px solid var(--line2);background:#f7f9fc;flex-wrap:wrap}
+.modal-hd .ttl{font-weight:700;font-size:14.5px}
+.modal-hd .spacer{flex:1}
+.modal-note{padding:10px 15px;font-size:12.5px;line-height:1.75;color:var(--ink2);background:#fffaf0;border-bottom:1px solid var(--line2)}
+.modal-note b{color:#7a4d00}
+.modal-body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+table.vf{font-size:12.5px}
+table.vf th.rn,table.vf td.rn{position:sticky;left:0;z-index:3;background:#f3f6fa;color:var(--muted);font-family:var(--mono);font-size:11.5px;text-align:right;min-width:52px;border-right:1px solid var(--line)}
+table.vf tbody td.rn{background:#fafbfd}
+table.vf tr.hit td{background:#fff6e0}
+table.vf tr.hit td.rn{background:#ffe9b8;color:#8a5a00;font-weight:700;box-shadow:inset 3px 0 0 #e0a52c}
+table.vf tr.ms td{background:#fdeceb}
+table.vf tr.ms td.rn{background:#f8d7d4;color:#8a1f18;font-weight:700;box-shadow:inset 3px 0 0 var(--bad)}
+table.vf th .cl{color:#8b93a0;font-family:var(--mono)}
+table.vf th .cl.calc{color:#b07a1a;background:#fdf3dd;border-radius:3px;padding:0 4px;cursor:help}
+
+/* ── 核对报告 ── */
+.vfrep{flex:0 0 auto;max-height:38vh;overflow:auto;padding:12px 15px;border-bottom:1px solid var(--line2);font-size:13px;line-height:1.8}
+.vfrep.ok{background:var(--ok-bg)}
+.vfrep.bad{background:var(--bad-bg)}
+.vfrep .vfr-t{font-weight:700;font-size:14px;margin-bottom:6px}
+.vfrep.ok .vfr-t{color:var(--ok)}
+.vfrep.bad .vfr-t{color:var(--bad)}
+.vfrep code{font-family:var(--mono);background:rgba(0,0,0,.05);padding:1px 5px;border-radius:4px}
+.vfrep .vfr-g{display:flex;flex-wrap:wrap;gap:6px 14px;margin:6px 0 8px;padding:8px 10px;background:rgba(255,255,255,.72);border-radius:var(--r-s)}
+.vfrep .vfr-g .k{color:var(--muted);font-size:12px}
+.vfrep .vfr-g .v{font-weight:650;margin-right:8px}
+.vfrep .vfr-g .dim{color:var(--muted);font-weight:400;font-size:12px}
+.vfrep .l{padding:3px 0}
+.vfrep .l.bad{color:var(--bad)}
+.vfrep .l.warn{color:var(--warn)}
+.vfrep .l .nums{font-family:var(--mono);font-size:12px;word-break:break-all}
+.vfrep .vfr-m{margin-top:8px;color:var(--ink2);font-size:12px}
+.hl-hit{background:#ffe9b8;padding:0 3px;border-radius:3px}
+.hl-miss{background:#f8d7d4;padding:0 3px;border-radius:3px}
+@media (max-width:899px){
+  .modal-panel{inset:0;border-radius:0}
+}
 
 .bars{padding:14px 15px}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
@@ -316,6 +375,13 @@ table.rt td.drill{cursor:pointer;color:var(--brand-d);font-weight:650;text-decor
 table.rt td.drill:hover{background:var(--brand-bg)}
 table.rt td.drill.on{background:var(--brand);color:#fff;box-shadow:none}
 table.rt td.drill.on::after{content:' ▾'}
+
+/* ── 版本标签 + 有新版本提示 ── */
+.ver{font:600 11px/1 var(--mono);color:var(--muted);background:#eef2f7;border:1px solid var(--line);border-radius:20px;padding:4px 9px;white-space:nowrap}
+.updbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:11px 14px;border-radius:var(--r-s);background:#fff5e6;border:1px solid #f0d6a8;color:#7a4d00;font-size:13px;line-height:1.65}
+.updbar .ic{font-size:16px}
+.updbar b{color:#5d3900}
+.updbar .btn{margin-left:auto}
 .cond input[type=date]{flex:1 1 130px;font-family:var(--mono);font-size:12.5px}
 
 .empty{text-align:center;padding:44px 20px;color:var(--muted)}
@@ -420,8 +486,15 @@ window.addEventListener('error', function (ev) {
   <div class="tb-file" title="2026年生产计划表) - 副本.xlsx">
     <span class="dot"></span><span class="nm">2026年生产计划表) - 副本.xlsx</span>
   </div>
+  <span class="ver" id="verTag" title="页面版本。换行号 / 比对前先看一眼这里 —— 对不上就是浏览器拿了旧缓存，按 Ctrl+F5 强制刷新。">v?</span>
   <button class="btn-ghost" id="btnOpen">换文件</button>
 </header>
+
+<div class="updbar" id="updBar" hidden>
+  <span class="ic">↻</span>
+  <div>检测到线上是<b>新版本 <span id="updVer">?</span></b>，你手上这份是旧缓存。<b>现在的位置和选好的设置会被重置</b>，刷新后才看得到新功能。</div>
+  <button class="btn sm pri" id="updGo">立即刷新</button>
+</div>
 
 <div class="role-tip" id="roleTip">
   <span class="ic">📱</span>
@@ -458,7 +531,7 @@ window.addEventListener('error', function (ev) {
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="cardPrimary">
         <div class="card-h">
           <span class="step">2</span><span>以哪一列为主</span>
           <span class="spacer"></span><span class="hint">按这一列把记录聚到一起</span>
@@ -468,7 +541,7 @@ window.addEventListener('error', function (ev) {
         </div>
       </div>
 
-      <div class="card">
+      <div class="card" id="cardCols">
         <div class="card-h">
           <span class="step">3</span><span>要统计哪些列</span>
           <span class="spacer"></span><span class="hint">选中的一定会出现在结果里</span>
@@ -558,6 +631,7 @@ window.addEventListener('error', function (ev) {
       </div>
       </div>
 
+      <div id="needTip" class="needtip" hidden></div>
       <div class="go-wrap"><button class="btn pri block sticky-go" id="runStat">开始统计</button></div>
     </section>
 
@@ -655,6 +729,22 @@ window.addEventListener('error', function (ev) {
   </main>
 </div>
 
+<!-- ══════════ 原表核对（只读，不改文件） ══════════ -->
+<div class="modal" id="verifyModal" hidden>
+  <div class="modal-bd"></div>
+  <div class="modal-panel">
+    <div class="modal-hd">
+      <span class="ttl" id="vfTitle">原表核对</span>
+      <span class="spacer"></span>
+      <button class="btn sm" id="vfMode">显示整张表</button>
+      <button class="btn sm" id="vfClose">关闭</button>
+    </div>
+    <div id="vfReport"></div>
+    <div class="modal-note" id="vfNote"></div>
+    <div class="modal-body tw" id="vfBody"></div>
+  </div>
+</div>
+
 <nav class="tabbar" id="tabbar"></nav>
 
 <script>
@@ -665,6 +755,10 @@ window.addEventListener('error', function (ev) {
    ========================================================================== */
 
 var FILE_NAME = '2026年生产计划表) - 副本.xlsx';
+
+/* 页面版本 —— 单文件应用没有文件名/哈希可看，只能自己在角落摆一个。
+   改完这个文件就把版本号 +1，部署后顶部会显示出来，对不上就是缓存。 */
+var APP_VER = '1.21';
 
 /* 简化模式：以某一列为主 + 选要看哪些列，把记录原样列出来。不做任何聚合。
    时间分组 / 聚合统计项 / 筛选条件还留在代码里，把这里改成 false 就整套回来。 */
@@ -1009,6 +1103,7 @@ function aggKey(col, agg){ return agg === 'rows' ? '行数' : col + ' · ' + AGG
 function colKind(col){
   if (/编号|编码|单号|序号|^号$/.test(col)) return 'id';
   var src = SRC_OF();
+  if (!src) return 'text';      /* 换表/导入的空档，别在这时候炸 */
   if ((src.timeCols || []).some(function (c){ return c.k === col; })) return 'date';
   var vals = [], rows = src.rows || [];
   for (var i = 0; i < rows.length && vals.length < 200; i++){
@@ -1089,6 +1184,7 @@ function aggDef(col, agg){
    用户根本不知道那是什么，只会把选项搅乱、还会被挑去求和。 */
 function colsOf(){
   var src = SRC_OF();
+  if (!src) return [];          /* 导入的空档期 SRC 是空的 —— 不能在这里炸 */
   if (src.colOrderUI) return src.colOrderUI;
   var all = src.colOrder;
   if (!all || !all.length){
@@ -1096,6 +1192,7 @@ function colsOf(){
     var seen = {}, rows = src.rows || [];
     for (var i = 0; i < rows.length && i < 50; i++){
       for (var k in rows[i]){
+        if (k.charAt(0) === '_' && k.charAt(1) === '_') continue;   /* __row / __rid 之类的内部字段不算列 */
         if (Object.prototype.hasOwnProperty.call(rows[i], k) && !seen[k]){ seen[k] = 1; all.push(k); }
       }
     }
@@ -1241,8 +1338,9 @@ function nonAddReport(rows){
   return rep;
 }
 
-/* 默认要看哪几列：先编号，再名称，再日期，最后补齐到 8 列 */
-function defaultShowCols(src){
+/* 一套“看起来合理”的默认列 —— **现在只给模板用**，界面上不替用户预填 */
+function defaultShowCols(src, primary){
+  primary = (primary === undefined) ? S.primary : primary;
   var pool = (src.colOrder && src.colOrder.length) ? src.colOrder : (src.detailCols || []);
   /* 这张表没表头的话，「第N列」也得能用 */
   var use = (src.hasHeader === false)
@@ -1250,7 +1348,7 @@ function defaultShowCols(src){
     : pool.filter(function (c){ return !/^第\d+列$/.test(c); });
   var out = [];
   var push = function (c){
-    if (!c || c === S.primary || out.indexOf(c) >= 0 || out.length >= 8) return;
+    if (!c || c === primary || out.indexOf(c) >= 0 || out.length >= 8) return;
     out.push(c);
   };
   use.forEach(function (c){ if (/编号|编码|单号/.test(c)) push(c); });
@@ -1318,6 +1416,8 @@ SRC.plan.colCount = 37;
     }
   });
   s.colOrder = out;
+  /* 演示数据没有真实 Excel 行号，按位置编一个 —— 原表核对时能对上顺序 */
+  s.rows.forEach(function (r, i){ if (r.__row === undefined) r.__row = i + 1; });
 });
 SRC.master.headerRow = 2; SRC.master.markerRow = 3; SRC.master.hasHeader = true;
 SRC.plan.headerRow = 2;   SRC.plan.markerRow = 0;   SRC.plan.hasHeader = true;
@@ -1325,27 +1425,11 @@ var DEMO_SRC = SRC;
 
 /* 表间联动已取消 —— 每张表自己算自己的，不让用户猜「这张表和谁有关系」 */
 
-/* ---------- 一键模板 ---------- */
-var TPLS = [
-  { s:'plan',   n:'★ 每月每人装配量', d:'默认 · 人 × 月',   g:['装配人'], t:{ col:'装配完成时间', grain:'month' },
-    m:['装配套数','装配数量','按时完工率'], v:'pivot' },
-  { s:'plan',   n:'每月每人开工量',   d:'按开工日看',       g:['装配人'], t:{ col:'装配开始时间', grain:'month' },     m:['装配套数','装配数量'] },
-  { s:'plan',   n:'每月每人送样量',   d:'按送样日看',       g:['装配人'], t:{ col:'实际送样时间', grain:'month' },     m:['装配套数','送样完成数'] },
-  { s:'plan',   n:'装配工期与延期',   d:'干几天 / 拖几天',   g:['装配人'], t:{ col:'装配完成时间', grain:'month' },
-    m:['装配套数','平均装配工期','装配延期','按时完工率'] },
-  { s:'plan',   n:'每季每人装配量',   d:'季度汇总',         g:['装配人'], t:{ col:'装配完成时间', grain:'quarter' },   m:['装配套数','装配数量'] },
-  { s:'plan',   n:'每天装配量',       d:'按天看产出',       g:['装配人'], t:{ col:'装配完成时间', grain:'day' },       m:['装配套数'] },
-  { s:'plan',   n:'每周装配量',       d:'按周看产出',       g:['装配人'], t:{ col:'装配完成时间', grain:'week' },      m:['装配套数'] },
-  { s:'plan',   n:'按零件看装配量',   d:'哪种零件做得多',   g:['零件名称'], t:{ col:'装配完成时间', grain:'month' },   m:['装配套数','平均装配工期'] },
-  { s:'plan',   n:'每月每人出图量',   d:'设计的逐月产出',   g:['设计'],   t:{ col:'图纸下发',     grain:'month' },     m:['工序数','设计延期合计'] },
-  { s:'plan',   n:'外协线割分布',     d:'线割给了谁做',     g:['线割供应商'], t:null, m:['装配套数','装配数量','装配完成率'] },
-  { s:'master', n:'每月交模量',       d:'客户 × 月',        g:['客户名称'], t:{ col:'实际交模日期', grain:'month' },   m:['订单数','交模套数'] },
-  { s:'master', n:'每季准交率',       d:'季度对比',         g:['生产班组'], t:{ col:'计划交模日期', grain:'quarter' }, m:['订单数','准交率','平均延期天数'] },
-  { s:'master', n:'订单准交分析',     d:'谁拖了、拖几天',   g:['客户名称'], t:null, m:['订单数','模具套数','平均延期天数','准交率'] },
-  { s:'master', n:'设计员接单量',     d:'谁手上模具最多',   g:['设计'],   t:null, m:['订单数','模具套数','平均延期天数'] },
-  { s:'master', n:'延期排行榜',       d:'最拖的排前面',     g:['客户名称','设计'], t:null, m:['订单数','最长延期','平均延期天数'] },
-  { s:'master', n:'班组产能',         d:'A/B/C 谁更忙',     g:['生产班组'], t:null, m:['订单数','模具套数','平均交货周期'] }
-];
+/* ---------- 一键模板 ----------
+   以前这里是写死的 16 个（配的是老聚合模型）。现在改成**运行时按当前工作簿生成**
+   —— 见 buildTemplates()。写死的列表在简化模式下没有 p / sc 字段，点了没反应，
+   所以整段删掉，只留一个空数组让 renderTpl() 去生成。 */
+var TPLS = [];
 
 /* ---------- 另外 41 张表（按结构归堆） ---------- */
 var GROUPS = [
@@ -1413,9 +1497,9 @@ var S = {
   src:'plan',
   time:{ on:true, col:'装配完成时间', grain:'month' },
   splitMulti:true,
-  primary:'装配人',                      /* 主索引：结果表的第一列，一行 = 一个装配人 */
-  showCols:['模具编号','零件名称','物料编码','工序','工序名称','装配完成时间'],
-  subDims:[],                            /* 细分列：每个分组下面那一排可点的筛选项 */
+  primary:'',                            /* 不预填 —— 用户自己选，选之前给提醒 */
+  showCols:[],                           /* 同上：不预填 */
+  subDims:[],                            /* 细分列：可选，默认也不填 */
   subSel:{},                             /* 每个分组各自选了哪些细分值：{组值: {维序: {值:1}}} */
   openSet:{},                            /* 分组卡片的展开状态 */
   groupBy:[],                            /* 附加分组：在主索引之后再细分 */
@@ -1448,11 +1532,13 @@ function SRC_OF(){ return SRC[S.src]; }
 
 /* 时间列在工厂里的说法（开工/截止/完工/送样…） */
 function timeColDef(){
-  var list = SRC_OF().timeCols || [];
+  var s = SRC_OF();
+  var list = (s && s.timeCols) || [];
   return list.filter(function (c){ return c.k === S.time.col; })[0] || list[0] || { k:'', t:'', why:'' };
 }
 function isDateCol(col){
-  return SRC_OF().timeCols.some(function (c){ return c.k === col; });
+  var s = SRC_OF();
+  return !!(s && s.timeCols && s.timeCols.some(function (c){ return c.k === col; }));
 }
 function dateOps(col){ return isDateCol(col) ? ['介于', '早于', '晚于'] : ['=', '≠', '包含']; }
 /* 列换了之后旧运算符可能不适用，修正掉 */
@@ -1488,8 +1574,9 @@ function applyCfg(cfg){
   var src = SRC[S.src], sd = src.defaults || { group:[], aggs:[], time:null };
   var tc = src.timeCols || [];
 
-  /* 主索引：以哪一列为主。'' = 不设，整表汇总 */
-  S.primary = ('primary' in cfg) ? (cfg.primary || '') : (sd.primary || '');
+  /* 主索引：以哪一列为主。'' = 还没选（模板里会带，那是用户主动点的） */
+  S.primary = ('primary' in cfg) ? (cfg.primary || '')
+            : (cfg.src !== prevSrc ? '' : S.primary);
 
   /* 附加分组：不能和主索引重名 */
   S.groupBy = (cfg.group || sd.group || []).slice()
@@ -1511,16 +1598,13 @@ function applyCfg(cfg){
   if (src.dims.length) S.conds.push({ col:src.dims[0].k, op:'=', val:'' });
   if (tc.length) S.conds.push({ col:tc[0].k, op:'介于', val:'', val2:'' });
 
-  /* 要显示的列：换表就按新表给一套合用的默认；没换表就别动用户选的 */
+  /* 要显示的列：默认**不预填**（不替用户决定看什么）；模板里会带 */
   if (cfg.showCols) S.showCols = cfg.showCols.slice();
-  else if (cfg.src !== prevSrc) S.showCols = defaultShowCols(src);
+  else if (cfg.src !== prevSrc) S.showCols = [];
 
-  /* 细分列：默认给「时间列的月份」——「某个人某个月做了多少」是第一眼就要看的 */
+  /* 细分列：默认**不预填** —— 它是可选的加工，先让人把前两步选完 */
   if (cfg.subDims) S.subDims = cfg.subDims.slice();
-  else if (cfg.src !== prevSrc){
-    S.subDims = (sd.timeCol && (src.timeCols || []).some(function (c){ return c.k === sd.timeCol; }))
-      ? [{ col: sd.timeCol, grain: 'month' }] : [];
-  }
+  else if (cfg.src !== prevSrc) S.subDims = [];
 
   /* 换了表，之前手动删掉的、以及各组选的细分筛选都不算数了 */
   if (cfg.src !== prevSrc){ S.deleted = {}; }
@@ -1603,7 +1687,9 @@ function renderTpl(){
 /* 主索引选了之后，把这一列在整张表里重不重复说清楚 ——
    重复不一定是错（一套模具挂多道工序本来就重复），但必须让人看见并确认。 */
 function primaryHint(src){
-  if (!S.primary) return '不设主索引 = 整张表汇总成一行。';
+  if (!S.primary){
+    return '<b class="warn">还没选</b> —— 选一列，结果就按这一列把记录聚到一起（同一个值归成一组）。';
+  }
   var d = dupOf(src.rows);
   if (!d.values) return '✓ 「' + esc(S.primary) + '」每个值都唯一 —— 一行正好对一条记录。';
   return '「' + esc(S.primary) + '」<b>不是唯一的</b> —— ' + d.distinct + ' 个值摊在 ' +
@@ -1631,8 +1717,28 @@ function fillAggKind(){
   }
 }
 
+/* 还差哪几步才能出结果 —— 默认什么都不预填，就必须有人告诉用户该干嘛。
+   放在这里，renderStat() 和 renderColPicker() 都要调：只调 renderStat 的话，
+   选完列提示不会消失，用户以为没生效。 */
+function renderNeeds(){
+  var needP = !S.primary, needC = !S.showCols.length;
+  var cp = $('#cardPrimary'), cc = $('#cardCols');
+  if (cp) cp.classList.toggle('need', needP);
+  if (cc) cc.classList.toggle('need', needC);
+  var tip = $('#needTip');
+  if (!tip) return;
+  if (!needP && !needC){ tip.hidden = true; tip.innerHTML = ''; return; }
+  var items = [];
+  if (needP) items.push('第 <b>2</b> 步：选<b>以哪一列为主</b>（比如装配人、设计、模具编号）');
+  if (needC) items.push('第 <b>3</b> 步：选<b>要统计哪些列</b>（选中的一定会出现在结果里）');
+  tip.hidden = false;
+  tip.innerHTML = '<b>还差 ' + items.length + ' 步就能出结果：</b><br>' +
+    items.map(function (t, i){ return '　' + (i + 1) + '. ' + t; }).join('<br>');
+}
+
 function renderStat(){
   var src = SRC_OF();
+  if (!src) return;             /* 换表/导入的空档，不要在这时候炸掉整页 */
   useMetrics();
   var cols = colsOf();
 
@@ -1659,8 +1765,8 @@ function renderStat(){
   cols.forEach(function (c){ kindOf[c] = colKind(c); });
 
   $('#primaryBox').innerHTML =
-    '<div class="opt-row"><select id="primarySel">' +
-      '<option value=""' + (S.primary ? '' : ' selected') + '>（不设，整张表汇总成一行）</option>' +
+    '<div class="opt-row"><select id="primarySel"' + (S.primary ? '' : ' class="ph"') + '>' +
+      '<option value=""' + (S.primary ? '' : ' selected') + '>— 请选择以哪一列为主 —</option>' +
       cols.map(function (c){
         return '<option value="' + esc(c) + '"' + (c === S.primary ? ' selected' : '') + '>' +
           esc(c) + '（' + KIND_LABEL[kindOf[c]] + '）</option>';
@@ -1688,6 +1794,8 @@ function renderStat(){
         }).join('')
       : '<span class="sub">不选也行 —— 不选就是每个组一整块平铺出来</span>';
   }
+
+  renderNeeds();
 
   /* 分组：时间维度独立一个开关，其余列从池子里加 */
   var gp = '';
@@ -2052,6 +2160,7 @@ function renderColPicker(src, cols){
   }
 
   renderColList();
+  renderNeeds();
 }
 
 function renderColList(){
@@ -2080,6 +2189,22 @@ var MISSKEY = '\u0000';
 
 function renderSimpleResult(){
   var src = SRC_OF();
+  if (!src) return;
+
+  /* 还没选主列 —— 直接说清楚该干什么，别摆一堆看不出所以然的东西上来 */
+  if (!S.primary){
+    S.last = { rows:[], rowsOut:[], groups:[], cols:[], simple:true,
+               out:[], dm:[], sorted:[], sortKey:null, pivot:null };
+    $('#resSub').textContent = src.name + ' · 还没选主列';
+    $('#resAnswer').innerHTML = '<div class="t">还没选「以哪一列为主」</div>' +
+      '回「做统计」<b>第 2 步</b>选一列 —— 比如<b>装配人</b>、<b>设计</b>、<b>模具编号</b>。' +
+      '选完之后，结果会按这一列把记录聚到一起（同一个值归成一组）。';
+    $('#simpleResult').innerHTML = '<div class="card"><div class="empty"><div class="e">▦</div>' +
+      '先回「做统计」选一列主列</div></div>';
+    $('#resSql').textContent = '（还没选主列）';
+    return;
+  }
+
   var all = compute().rows;
   var cols = S.showCols.filter(function (c){ return c !== S.primary; });
 
@@ -2184,6 +2309,7 @@ function renderSimpleResult(){
      但页面不会一下子上千行。想全看就点「全部展开」。 */
   var openFirst = 3;
   var allShown = [];          /* 各组细分筛完之后的记录，按组顺序 —— 导出就照这个来 */
+  var shownOf = {};           /* 每组实际显示了几行 */
   grps.forEach(function (g, i){
     var open = (S.openSet[g.key] === undefined) ? (i < openFirst) : !!S.openSet[g.key];
 
@@ -2219,6 +2345,7 @@ function renderSimpleResult(){
     }
     var filtered = (shown.length !== g.rows.length);
     allShown = allShown.concat(shown);
+    shownOf[g.key] = shown.length;
 
     h.push('<div class="gr' + (g.miss ? ' misskey' : '') + '">' +
       '<div class="gr-hd" data-gr-toggle="' + i + '">' +
@@ -2227,6 +2354,8 @@ function renderSimpleResult(){
             ? '<b class="on">' + shown.length + '</b> / ' + g.rows.length + ' 条'
             : g.rows.length + ' 条') + '</span>' +
         '<span class="sp"></span>' +
+        '<button class="vfbtn" data-verify="' + i + '"' +
+          ' title="在原表里核对这一组的行：只读打开，不改 Excel 文件、不改统计结果">原表核对</button>' +
         '<span class="caret">' + (open ? '▾ 收起' : '▸ 展开') + '</span>' +
       '</div>');
 
@@ -2285,7 +2414,227 @@ function renderSimpleResult(){
   /* 导出 = 屏幕上筛出来的那些（含各组细分筛选），所见即所得 */
   S.last.rowsOut = allShown;
   S.last.subFiltered = (allShown.length !== all.length);
+  S.last.shownOf = shownOf;      /* 每组实际显示了几行 —— 核对报告要用来分辨「你自己筛掉的」 */
   $('#simpleResult').innerHTML = h.join('');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   原表核对 —— 独立重扫 + 逐行对账
+
+   ⚠ 这里最重要的原则：**绝不能拿统计那边的数据来「证明」统计是对的**。
+     那样只是把同一份结果显示两遍，什么问题都发现不了。
+
+     甲面（统计）：compute() 之后、过了筛选和手动删除的那些行
+     乙面（原表）：直接回到解析出来的原始行，按主列的值重新扫一遍，
+                   不加任何筛选、不做任何去重 —— 就当自己第一次看这张表
+
+     两面只对「行号」做差集。差集不为空，就说明有问题：
+       · 原表有、统计没有 → 遗漏（或者是你自己删掉的，会单独列出来）
+       · 统计有、原表找不到 → 凭空多出来
+       · 同一条被算了两次 → 重复添加
+   ══════════════════════════════════════════════════════════════════ */
+var VF_CAP = 1500;   /* 一次性最多画多少行，防止手机上直接卡死 */
+
+/* 甲面 vs 乙面，把差集算出来 */
+function vfScan(gidx){
+  var src = SRC_OF();
+  var g = (S.last && S.last.groups) ? S.last.groups[gidx] : null;
+  if (!src || !g) return null;
+  var prim = S.primary;
+
+  /* ── 甲面：统计结果给出的行号 ── */
+  var aList = [], aSeen = {}, aDup = [];
+  (g.rows || []).forEach(function (r){
+    var n = r.__row;
+    if (n === undefined) return;
+    if (aSeen[n]) aDup.push(n); else { aSeen[n] = 1; aList.push(n); }
+  });
+
+  /* ── 乙面：回原始解析结果，从头扫一遍 ── */
+  var sheet = (WB && WB.sheets) ? WB.sheets[src.sheetIdx] : null;
+  var t = (sheet && sheet.table) || null;
+  var bList = [], bSeen = {}, bDup = [], bDeleted = {};
+  if (t){
+    for (var i = 0; i < t.rows.length; i++){
+      var r = t.rows[i];
+      var v = r[prim];
+      if (v === undefined) continue;                       /* 这行根本没这一列 */
+      var mine = g.miss ? isBlank(v) : (String(v) === String(g.key));
+      if (!mine) continue;
+      var n = r.__row;
+      if (n === undefined) continue;
+      if (bSeen[n]) bDup.push(n); else { bSeen[n] = 1; bList.push(n); }
+      if (S.deleted && S.deleted[r.__rid]) bDeleted[n] = 1;
+    }
+  }
+  bList.sort(function (x, y){ return x - y; });
+  aList.sort(function (x, y){ return x - y; });
+
+  var onlySheet = bList.filter(function (n){ return !aSeen[n]; });    /* 原表有、统计没有 */
+  var onlyStat  = aList.filter(function (n){ return !bSeen[n]; });    /* 统计有、原表找不到 */
+  var manual = onlySheet.filter(function (n){ return bDeleted[n]; }); /* 这些是你自己删的 */
+  var miss   = onlySheet.filter(function (n){ return !bDeleted[n]; });/* 这些是真漏了 */
+
+  /* 界面上的细分筛选是「你自己缩小范围」，不是错，单独说一声 */
+  var subOut = (g.rows || []).length - ((S.last.shownOf && S.last.shownOf[g.key]) || g.rows.length);
+
+  var colIx = (src.colIdx || {})[prim];
+  var ok = (!miss.length && !onlyStat.length && !aDup.length && !bDup.length);
+
+  return {
+    label: g.miss ? '（' + (prim || '主列') + '为空）' : String(g.key),
+    key: g.key, miss: g.miss, prim: prim, colIx: colIx,
+    stat: aList, sheet: bList, statSet: aSeen, sheetSet: bSeen,
+    onlySheet: onlySheet, onlyStat: onlyStat, manual: manual, realMiss: miss,
+    aDup: aDup, bDup: bDup, subOut: subOut, ok: ok,
+    scanned: t ? t.rows.length : 0
+  };
+}
+
+function openVerify(gidx){
+  var rep = vfScan(gidx);
+  if (!rep) return;
+  S.vf = { gidx: gidx, all: false };
+  var m = $('#verifyModal');
+  if (m) m.hidden = false;
+  renderVerify();
+}
+
+function closeVerify(){
+  S.vf = null;
+  var m = $('#verifyModal');
+  if (m) m.hidden = true;
+}
+
+/* 统计那边改动了（删了一行…）就重算一遍报告，别让报告跟数据脱节 */
+function refreshVerify(){
+  if (!S.vf) return;
+  renderVerify();
+}
+
+function renderVerify(){
+  var vf = S.vf;
+  if (!vf) return;
+  var src = SRC_OF();
+  if (!src) return closeVerify();
+  var rep = vfScan(vf.gidx);
+  if (!rep) return closeVerify();
+
+  var letters = src.colIdx || {};
+  var primCol = (rep.colIx === undefined)
+    ? '<b>（这是算出来的派生列，原表里没有对应的列，只能按行号对）</b>'
+    : '<b>' + colLetter(rep.colIx) + ' 列</b>（原表从左数第 ' + (rep.colIx + 1) + ' 列）';
+
+  var t = $('#vfTitle');
+  if (t) t.innerHTML = '原表核对 —— 《' + esc(src.name || '') + '》 · <b>' + esc(rep.label) + '</b>';
+
+  /* ── 结论横幅 ── */
+  var rp = $('#vfReport');
+  if (rp){
+    rp.className = 'vfrep ' + (rep.ok ? 'ok' : 'bad');
+    var lines = [];
+    if (rep.miss.length)
+      lines.push('<div class="l bad">原表里有 <b>' + rep.miss.length + '</b> 行属于这一组，' +
+        '但统计结果里<b>没有</b> —— 漏了：<span class="nums">' + rep.miss.slice(0, 60).join(', ') +
+        (rep.miss.length > 60 ? ' …' : '') + '</span></div>');
+    if (rep.onlyStat.length)
+      lines.push('<div class="l bad">统计结果里有 <b>' + rep.onlyStat.length + '</b> 行，' +
+        '回到原表却<b>找不到</b> —— 多出来的：<span class="nums">' + rep.onlyStat.slice(0, 60).join(', ') +
+        (rep.onlyStat.length > 60 ? ' …' : '') + '</span></div>');
+    if (rep.aDup.length)
+      lines.push('<div class="l bad">统计里同一条被算了 <b>' + (rep.aDup.length + 1) + '</b> 次 —— ' +
+        '重复添加，行号：<span class="nums">' + rep.aDup.join(', ') + '</span></div>');
+    if (rep.bDup.length)
+      lines.push('<div class="l warn">原表里同一个行号出现了两次（解析异常）：' +
+        '<span class="nums">' + rep.bDup.join(', ') + '</span></div>');
+    if (rep.manual.length)
+      lines.push('<div class="l warn">另有 <b>' + rep.manual.length + '</b> 行是<b>你自己手动删掉</b>的' +
+        '（不算漏）：<span class="nums">' + rep.manual.slice(0, 60).join(', ') +
+        (rep.manual.length > 60 ? ' …' : '') + '</span></div>');
+    if (rep.subOut > 0)
+      lines.push('<div class="l warn">这一组下面有<b>细分筛选</b>，界面上另外藏了 <b>' + rep.subOut +
+        '</b> 行 —— 那是你自己缩的范围，不算漏。</div>');
+    if (rep.ok)
+      lines.push('<div class="l">两边一行一行对得上，没有漏、没有多、没有重复。</div>');
+
+    rp.innerHTML =
+      '<div class="vfr-t">' + (rep.ok
+        ? '✅ 对上了'
+        : '❌ 对不上，下面写出了差在哪里') +
+      '　·　主列 <code>' + esc(rep.prim) + '</code> 在原表里是 ' + primCol + '</div>' +
+      '<div class="vfr-g">' +
+        '<span class="k">甲面 · 统计结果</span><span class="v">' + rep.stat.length + ' 行' +
+          (rep.stat.length ? '（第 ' + rep.stat[0] + '～' + rep.stat[rep.stat.length - 1] + ' 行）' : '') + '</span>' +
+        '<span class="k">乙面 · 原表重扫</span><span class="v">' + rep.sheet.length + ' 行' +
+          (rep.sheet.length ? '（第 ' + rep.sheet[0] + '～' + rep.sheet[rep.sheet.length - 1] + ' 行）' : '') +
+          '　<span class="dim">扫了整张表 ' + rep.scanned + ' 行</span></span>' +
+      '</div>' +
+      lines.join('') +
+      '<div class="vfr-m">乙面是从解析出来的原始行里<b>重新扫一遍</b>得出来的，' +
+        '没有经过统计的任何筛选、分组、去重 —— 所以这个对账才有意义。</div>';
+  }
+
+  /* ── 只读说明 ── */
+  var note = $('#vfNote');
+  if (note){
+    /* 没表头的列（第N列）不进下拉也不画，但它占着一个真实列标 ——
+       说一声，用户看到列标跳号（F 直接到 H）才不会以为漏了什么。 */
+    var hidden = (src.colOrder || []).filter(function (c){
+      return src.hasHeader !== false && /^第\d+列$/.test(c) && letters[c] !== undefined;
+    });
+    note.innerHTML = '<b>只读</b>：下面把《' + esc(src.name || '') +
+      '》的原始内容原样画出来，<b>不会改你的 Excel 文件</b>，也不会改统计结果。' +
+      '左边是 <b>Excel 行号</b>，表头是 <b>列标</b>（A / B / C…），跟 Excel 里的一致，照着对就行。' +
+      (hidden.length
+        ? '　原表里还有 <b>' + hidden.length + ' 列没有表头</b>（' +
+          hidden.map(function (c){ return colLetter(letters[c]); }).join('、') +
+          '）没画出来，所以列标会跳号 —— 不是漏列。'
+        : '') +
+      '　标「算」的是应用里算出来的列（延期 / 工期），原表里没有。' +
+      (vf.all
+        ? '　全表都在下面，<span class="hl-hit">黄底</span>＝算进这一组的，' +
+          '<span class="hl-miss">红底</span>＝原表里属于这一组却没被统计到的。'
+        : '　现在只列这一组的行。想看全表点右上角。');
+  }
+
+  /* ── 表体 ──
+     注意：rep.sheet 里存的是**行号**，这里要按行号回到原始行对象上，
+     否则画出来的一行行全是空的（踩过）。 */
+  var all = src.rows || [];
+  var list = vf.all ? all : all.filter(function (r){ return rep.sheetSet[r.__row]; });
+  var cols = colsOf();
+  var body = list.slice(0, VF_CAP);
+  var hit = {}, missSet = {};
+  rep.stat.forEach(function (n){ hit[n] = 1; });
+  rep.realMiss.forEach(function (n){ missSet[n] = 1; });
+
+  var b = $('#vfBody');
+  if (b){
+    b.innerHTML = '<table class="rt vf"><thead><tr><th class="rn">行</th>' +
+      cols.map(function (c){
+        var ix = letters[c];
+        /* 没有列标 = 这一列是应用里算出来的（延期/工期），原表里根本没这一列 */
+        return '<th>' + (ix === undefined
+          ? '<span class="cl calc" title="这是算出来的列，原表里没有，只能在 Excel 里按行号对">算</span> '
+          : '<span class="cl">' + colLetter(ix) + '</span> ') + esc(c) + '</th>';
+      }).join('') + '</tr></thead><tbody>' +
+      body.map(function (r){
+        var cls = missSet[r.__row] ? ' class="ms"' : (hit[r.__row] ? ' class="hit"' : '');
+        return '<tr' + cls + '><td class="rn">' + (r.__row === undefined ? '' : r.__row) + '</td>' +
+          cols.map(function (c){
+            var v = r[c];
+            return isBlank(v) ? '<td><span class="miss">空缺</span></td>'
+                              : '<td>' + esc(String(v)) + '</td>';
+          }).join('') + '</tr>';
+      }).join('') + '</tbody></table>' +
+      (list.length > VF_CAP
+        ? '<div class="sub" style="padding:12px 15px">只画了前 ' + VF_CAP + ' 行（共 ' + list.length +
+          ' 行）。想全看就在 Excel 里按行号找。</div>'
+        : (body.length ? '' : '<div class="empty" style="padding:30px">这一组没有可显示的行</div>'));
+  }
+
+  var mb = $('#vfMode');
+  if (mb) mb.textContent = vf.all ? '只看这一组的 ' + (rep.sheet || []).length + ' 行' : '显示整张表（' + all.length + ' 行）';
 }
 
 /* 老功能（聚合视图）整套保留着，UI_SIMPLE 改成 false 就回来 */
@@ -3217,7 +3566,9 @@ document.addEventListener('click', function (e){
 
   if ((el = e.target.closest('[data-tpl]'))){
     var t = TPLS[+el.dataset.tpl];
-    applyCfg({ src:t.s, primary:t.p, group:t.g, aggs:t.a, time:t.t, view:t.v });
+    applyCfg(UI_SIMPLE
+      ? { src:t.s, primary:t.p, showCols:t.sc || [], subDims:t.sd || [] }
+      : { src:t.s, primary:t.p, group:t.g, aggs:t.a, time:t.t, view:t.v });
     renderStat(); go('result'); return;
   }
 
@@ -3268,7 +3619,10 @@ document.addEventListener('click', function (e){
   if ((el = e.target.closest('[data-del-row]'))){
     S.deleted = S.deleted || {};
     S.deleted[el.dataset.delRow] = 1;
-    renderResult(); return;
+    renderResult();
+    /* 删完会改变这一组的行数，核对报告要跟着重算，否则两边对不上 */
+    refreshVerify();
+    return;
   }
   if (e.target.closest('[data-del-blank]')){
     S.deleted = S.deleted || {};
@@ -3310,6 +3664,19 @@ document.addEventListener('click', function (e){
     S.subDims.splice(+el.dataset.delSub, 1);
     S.subSel = {};
     renderStat(); return;
+  }
+
+  /* ── 原表核对：必须排在 [data-gr-toggle] 前面，否则会被展开/收起吃掉 ── */
+  if ((el = e.target.closest('[data-verify]'))){
+    openVerify(+el.dataset.verify);
+    return;
+  }
+  if (e.target.closest('#vfClose') || e.target.closest('.modal-bd')){
+    closeVerify(); return;
+  }
+  if (e.target.closest('#vfMode')){
+    if (S.vf){ S.vf.all = !S.vf.all; renderVerify(); }
+    return;
   }
 
   /* ── 简化模式：分组展开／收起 ── */
@@ -3831,6 +4198,8 @@ function buildTable(parsed, name){
         o[col.name] = (isFinite(n2) && n2 > 20000 && n2 < 80000 && !isDateStr(v)) ? serialToDate(n2) : v;
       } else o[col.name] = v;
     });
+    /* 记住它在 Excel 里的真实行号 —— 「原表核对」靠这个对得上。不参与统计。 */
+    o.__row = n;
     return o;
   });
 
@@ -4024,7 +4393,9 @@ function buildSrcFromSheets(){
       colOrder: t.cols.map(function (c){ return c.name; }).concat(
         t.derived.map(function (d){ return d.k; }).filter(function (k){
           return t.cols.every(function (c){ return c.name !== k; });
-        }))
+        })),
+      /* 列名 → 真实的 Excel 列号（0 起），「原表核对」用它显示 A/B/C… */
+      colIdx: (function(){ var m = {}; t.cols.forEach(function (c){ m[c.name] = c.idx; }); return m; })()
     };
     out[id].defaults = defaultsFor(t);
     order.push(id);
@@ -4040,6 +4411,23 @@ function buildTemplates(){
   S.tableOrder.forEach(function (id){
     var s = SRC[id], d = s.defaults;
     if (!d || !d.primary) return;
+
+    /* 简化模式：模板就是「一套完整的开局」—— 主列 + 要看哪些列 (+可选细分)。
+       界面上不预填，但这不妨碍给一个一键开局。 */
+    if (UI_SIMPLE){
+      var sc = defaultShowCols(s, d.primary);
+      TPLS.push({ s:id, p:d.primary, sc:sc, sd:[], g:[], a:d.aggs, t:null, v:'table',
+                  n:'按 ' + d.primary + ' 看', d:sc.length + ' 列' });
+      if (d.timeCol){
+        var sc2 = sc.slice();
+        if (sc2.indexOf(d.timeCol) < 0 && sc2.length < 9) sc2.push(d.timeCol);
+        TPLS.push({ s:id, p:d.primary, sc:sc2, sd:[{ col:d.timeCol, grain:'month' }],
+                    g:[], a:d.aggs, t:null, v:'table',
+                    n:d.primary + ' × 月份', d:'带按月份筛选' });
+      }
+      return;
+    }
+
     /* 卡片上<small>那行写「算了什么」，表名 renderTpl 会自己带上 */
     var cap = (d.aggs || []).map(function (a){ return a.col + '·' + AGG_NAME[a.agg]; }).join(' + ');
 
@@ -4119,13 +4507,19 @@ async function openFile(file){
     SRC = {};
     var n = buildSrcFromSheets();
     if (!n) throw new Error('这些工作表里没有能用的数据表（都要至少 5 行、2 列）');
+    /* 必须先把 S.src 指到新表上，再 buildTemplates()。
+       链路：buildTemplates → defaultShowCols → colKind → isDateCol → SRC_OF()
+       这时候 SRC 已经是新导入的表（s0、s1…），但 S.src 还指着上一份文件的
+       id（master / plan）—— SRC_OF() 返回 undefined，读 .timeCols 直接抛错，
+       整个导入就废了。把 S.src 清空再 applyCfg，prevSrc 一定不等，重置也干净。 */
+    var first = S.tableOrder[0];
+    S.src = '';
+    applyCfg({ src:first });
     buildTemplates();
     FILE_NAME = file.name;
     setFileLabel();
     S.fileLoaded = true;
     S.sheetFilter = '';
-    var first = S.tableOrder[0];
-    applyCfg({ src:first });
     renderTpl();
     renderStat();
     renderSource();
@@ -4258,6 +4652,36 @@ renderStat();
 renderRules();
 renderNav();
 setFileLabel();
+
+/* ══════════════════════════════════════════════════════════════════
+   缓存自检 —— 自己把自己再抓一遍，比对新旧版本号
+   为什么必须做：手机加了书签/微信里存着页面，改完代码对方还是看到旧的，
+   然后就来问「你说改好了，我这怎么没变」。这个横幅能把话说清楚。
+   ══════════════════════════════════════════════════════════════════ */
+(function (){
+  var tag = $('#verTag');
+  if (tag) tag.textContent = 'v' + APP_VER;
+  if (location.protocol === 'file:') return;   /* 本地打开，浏览器本来就不缓存 */
+  var url = location.href.split('#')[0] +
+            (location.href.indexOf('?') < 0 ? '?' : '&') + '_cb=' + Date.now();
+  fetch(url, { cache: 'no-store' }).then(function (r){
+    return r.ok ? r.text() : '';
+  }).then(function (t){
+    var m = /APP_VER\s*=\s*'([^']+)'/.exec(t || '');
+    if (!m || m[1] === APP_VER) return;
+    $('#updVer').textContent = 'v' + m[1];
+    $('#updBar').hidden = false;
+    $('#updGo').onclick = function (){
+      location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]));
+    };
+  }).catch(function (){ /* 断网、CORS 之类，静默忽略就好 */ });
+})();
+
+/* Esc 关掉原表核对 */
+document.addEventListener('keydown', function (e){
+  if ((e.key === 'Escape' || e.keyCode === 27) && S.vf) closeVerify();
+});
+
 $('#btnOpen').onclick = function (){
   var f = $('#fileInput');
   if (f) f.click(); else { $('#btnOpen').textContent = '去数据源页选文件'; go('source'); }

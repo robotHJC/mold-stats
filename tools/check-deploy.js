@@ -74,12 +74,21 @@ function gh(args) {
       ['内置浏览器选文件的提示在', html.includes('wxwarn')],
       ['主索引下拉在', html.includes('primarySel')],
       ['统计项构造器在', html.includes('addAgg')],
+      /* 原表核对：线上跑的是哪一版，就看这几项在不在 */
+      ['原表核对弹层在', html.includes('id="verifyModal"')],
+      ['原表核对按钮在', html.includes('data-verify')],
+      ['核对是独立重扫的（不是复用统计）', html.includes('vfScan') && html.includes('bList')],
+      ['版本号', /APP_VER\s*=\s*'([^']+)'/.exec(html)],
+      ['缓存自检在（会自己抓一遍线上比对版本）', html.includes("cache: 'no-store'") && html.includes('updBar')],
+      ['默认不预填的提醒在', html.includes('needTip') && html.includes('renderNeeds')],
+      ['no-cache meta 在', html.includes('must-revalidate')],
     ];
     checks.forEach(([label, v]) => {
-      if (!v) return console.log('  ✗ ' + label);
+      if (!v) return console.log('  ✗ ' + label + ' —— 线上还是旧版本！先 Ctrl+F5 再查一次');
       const val = Array.isArray(v) ? v[1] : '有';
       console.log('  ✓ ' + label + '：' + val);
     });
+    console.log('\n  ⚠ 浏览器缓存自查：如果上面有 ✗，先确认不是本地缓存 —— 换个浏览器或加 ?v=' + Date.now() + ' 再看。');
   } catch (e) {
     console.log('  打不开：' + e.message);
     console.log('  （Pages 首次构建可能要等 1 分钟，稍后再试）');
