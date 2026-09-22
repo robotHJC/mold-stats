@@ -6,11 +6,25 @@
  */
 'use strict';
 const { execFileSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const REPO = process.argv[2] || 'robotHJC/mold-stats';
 const GH = 'C:\\Program Files\\GitHub CLI\\gh.exe';
 const [owner, name] = REPO.split('/');
 const URL_LIVE = `https://${owner.toLowerCase()}.github.io/${name}/`;
+
+/* 控制台里中文经常被压坏、输出偶尔还会被吞，所以同时写一份 UTF-8 报告 */
+const LOG = path.join(__dirname, '_check-deploy-out.txt');
+const buf = [];
+const _log = console.log;
+console.log = function () {
+  const s = [].slice.call(arguments).join(' ');
+  buf.push(s);
+  _log(s);
+};
+function flush() { try { fs.writeFileSync(LOG, buf.join('\n') + '\n', 'utf8'); } catch (e) {} }
+process.on('exit', flush);
 
 function gh(args) {
   try {
