@@ -15,6 +15,7 @@
    设计令牌 —— 工业场景：高对比、大触控、弱装饰
    ============================================================ */
 :root{
+  --fs:1;                    /* 字号倍率：顶栏 A− / A+ 改这个值（表格、标题、按钮都跟着变） */
   --bg:#eceff4; --card:#fff; --ink:#151f2b; --ink2:#3d4c5c; --muted:#6b7c90;
   --line:#dbe2ea; --line2:#eef2f6;
   --brand:#1f6feb; --brand-d:#1552b8; --brand-bg:#e8f1ff;
@@ -94,7 +95,7 @@ main{padding:14px 14px 92px}
 .card-h .hint{font-weight:400;font-size:12px;color:var(--muted)}
 .card-b{padding:14px 15px}
 .sub{font-size:12.5px;color:var(--muted);line-height:1.65}
-.page-title{font-size:19px;font-weight:700;margin:2px 0 4px}
+.page-title{font-size:calc(21px * var(--fs,1));font-weight:800;margin:2px 0 4px}
 .page-sub{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6}
 
 .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--ink2)}
@@ -129,6 +130,7 @@ main{padding:14px 14px 92px}
 .banner{display:flex;gap:10px;padding:12px 14px;border-radius:var(--r);margin-bottom:12px;font-size:13px;line-height:1.6;align-items:flex-start}
 .banner .ic{flex:0 0 auto;font-size:16px;line-height:1.35}
 .banner.ok{background:var(--ok-bg);color:#0c5c2e;border:1px solid #bfe6cd}
+.banner.bad{background:var(--bad-bg);color:#8a1f18;border:1px solid #f0c4c0}
 .banner.warn{background:var(--warn-bg);color:#7a4403;border:1px solid #f2ddb4}
 .banner .lnk{color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0}
 
@@ -218,7 +220,9 @@ main{padding:14px 14px 92px}
 @media (min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
 .kpi{background:var(--card);border-radius:var(--r);padding:12px 13px;box-shadow:var(--sh)}
 .kpi .k{font-size:11.5px;color:var(--muted);margin-bottom:3px}
-.kpi .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .v{font-size:calc(30px * var(--fs,1));font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15;letter-spacing:-.5px}
+.kpi.bad .v{color:var(--bad)}
+.kpi.ok .v{color:var(--ok)}
 .kpi .v small{font-size:12px;font-weight:500;color:var(--muted);margin-left:2px}
 .kpi .d{font-size:11.5px;margin-top:2px;color:var(--muted)}
 .kpi .d.dn{color:var(--bad)} .kpi .d.up{color:var(--ok)}
@@ -228,9 +232,9 @@ main{padding:14px 14px 92px}
 .segmented button.on{background:#fff;color:var(--brand);box-shadow:0 1px 3px rgba(21,31,43,.12)}
 
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table.rt{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
-table.rt th,table.rt td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line2)}
-table.rt thead th{background:#f3f6fa;font-size:12px;color:var(--ink2);font-weight:700;position:sticky;top:0;z-index:2}
+table.rt{border-collapse:collapse;width:100%;font-size:calc(14.5px * var(--fs,1));white-space:nowrap}
+table.rt th,table.rt td{padding:calc(10px * var(--fs,1)) calc(12px * var(--fs,1));text-align:left;border-bottom:1px solid var(--line2)}
+table.rt thead th{background:#f3f6fa;font-size:calc(13px * var(--fs,1));color:var(--ink2);font-weight:700;position:sticky;top:0;z-index:2}
 table.rt td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px}
 table.rt tbody tr:hover{background:#f7f9fc}
 table.rt tbody tr.bad td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
@@ -259,20 +263,25 @@ table.rt tbody tr.dup td:first-child{box-shadow:inset 3px 0 0 var(--bad);font-we
 .ms-item .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
 /* ── 分组结果：一组一张卡 ── */
-.gr-tools{display:flex;gap:9px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.gr-tools{display:flex;gap:9px;align-items:center;margin-bottom:12px;flex-wrap:wrap;font-size:calc(13px * var(--fs,1))}
+.gr-tools b{color:var(--ink);font-family:var(--mono);font-size:calc(16px * var(--fs,1));font-weight:800}
 .gr{background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
-.gr-hd{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:#f7f9fc;flex-wrap:wrap}
+.gr-hd{display:flex;align-items:center;gap:10px;padding:calc(13px * var(--fs,1)) calc(14px * var(--fs,1));cursor:pointer;background:#f7f9fc;flex-wrap:wrap}
 .gr-hd:hover{background:#eef3f9}
-.gr-hd .nm{font-weight:700;font-size:14px}
-.gr-hd .n{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.gr-hd .nm{font-weight:800;font-size:calc(17px * var(--fs,1));letter-spacing:.2px}
+.gr-hd .n{font-size:calc(13px * var(--fs,1));color:var(--muted);font-family:var(--mono)}
 .gr-hd .sp{flex:1;min-width:10px}
-.gr-hd .caret{font-size:11px;color:var(--muted)}
+.gr-hd .caret{font-size:calc(12px * var(--fs,1));color:var(--muted)}
+.gr.open .gr-hd{background:#eef5ff;box-shadow:inset 3px 0 0 var(--brand)}
 .gr-bd{border-top:1px solid var(--line2)}
 .gr.misskey .gr-hd{background:#fff4e0}
 .gr.misskey .gr-hd .nm{color:#8a5a00}
 .miss{color:#9aa7b5;font-style:italic}
 /* 手动删除那一条的按钮列 */
 table.rt th.del-th,table.rt td.del-td{width:40px;min-width:40px;padding:3px 6px;text-align:center}
+/* 一格多人那一行的「拆 / 不拆」按钮列 */
+table.rt td.spl-td{padding:4px 8px;text-align:center}
+table.rt th.spl-td{width:74px;min-width:74px}
 .rowdel{border:0;background:#f0f4f9;color:#93a2b3;font-size:14px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit}
 .rowdel:hover,.rowdel:active{background:#fdeceb;color:var(--bad)}
 .btn.deln{background:#fdeceb;border-color:#f2c3bf;color:#8c2f27}
@@ -287,14 +296,34 @@ select.ph{color:var(--muted)}
 /* ── 细分筛选条：每一组下面那一排可点的值 ── */
 .gr-sub{padding:10px 14px;border-top:1px solid var(--line2);background:#fbfcfe;display:flex;flex-direction:column;gap:8px}
 .sd{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.sd-n{font-size:12px;color:var(--muted);flex:0 0 auto;margin-right:3px}
-.sdv{border:1px solid var(--line);background:#fff;border-radius:20px;padding:4px 11px;font-size:12.5px;cursor:pointer;font-family:inherit;color:var(--ink2);line-height:1.45}
-.sdv b{margin-left:5px;font-family:var(--mono);font-size:11.5px;color:var(--muted);font-weight:600}
+.sd-n{font-size:calc(12.5px * var(--fs,1));color:var(--ink2);font-weight:650;flex:0 0 auto;margin-right:3px}
+.sdv{border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 12px;font-size:calc(14px * var(--fs,1));cursor:pointer;font-family:inherit;color:var(--ink2);line-height:1.45}
+.sdv b{margin-left:6px;font-family:var(--mono);font-size:calc(14px * var(--fs,1));color:var(--brand-d);font-weight:800}
 .sdv:hover{border-color:var(--brand);color:var(--brand)}
 .sdv.on{background:var(--brand);border-color:var(--brand);color:#fff}
-.sdv.on b{color:#dbe9ff}
-.sd-clr{border:0;background:transparent;color:var(--bad);font-size:12px;cursor:pointer;padding:3px 7px;font-family:inherit;border-radius:6px}
+.sdv.on b{color:#fff}
+.sd-clr{border:0;background:transparent;color:var(--bad);font-size:calc(12.5px * var(--fs,1));cursor:pointer;padding:3px 7px;font-family:inherit;border-radius:6px}
 .sd-clr:hover{background:#fdeceb}
+/* 组内的「加一个细分列」下拉 —— 从统计页搬到结果页，就在展开区域里 */
+.gr-subbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line2);background:#f4f8fd}
+.gr-subbar .sb-n{font-size:calc(12.5px * var(--fs,1));color:var(--ink2);font-weight:650}
+.gr-subbar select{max-width:280px}
+/* 大数字：整组多少条 / 筛出来多少条，一眼能看到 */
+.bigN{font-family:var(--mono);font-weight:800;font-size:calc(21px * var(--fs,1));color:var(--brand-d);line-height:1}
+.bigN.dim{color:var(--muted);font-size:calc(15px * var(--fs,1));font-weight:600}
+.gr-hd .n{display:inline-flex;align-items:baseline;gap:4px}
+.gr-hd .n .bigN{color:var(--brand-d)}
+/* 一格多人：逐条覆盖 */
+.splbtn{border:1px solid #c9d8ea;background:#eef4fd;color:var(--brand-d);border-radius:6px;font:650 11.5px/1 inherit;padding:4px 7px;cursor:pointer;white-space:nowrap}
+.splbtn.off{background:#fff;border-color:var(--line);color:var(--muted);font-weight:500}
+.splbtn:hover{border-color:var(--brand)}
+.spltag{font-size:11px;color:var(--warn);background:var(--warn-bg);border-radius:4px;padding:1px 5px;margin-left:5px;font-weight:600}
+/* 校验结果 */
+.ckrow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.ckrow:hover{background:#f7f9fc}
+.ckrow .nm2{font-weight:700;min-width:120px}
+.ckrow .num{font-family:var(--mono);font-weight:700}
+.ckrow.bad .num{color:var(--bad)}
 .gr-hd .n b.on{color:var(--brand);font-size:13.5px}
 
 /* ── 原表核对按钮 ── */
@@ -378,6 +407,11 @@ table.rt td.drill.on::after{content:' ▾'}
 
 /* ── 版本标签 + 有新版本提示 ── */
 .ver{font:600 11px/1 var(--mono);color:var(--muted);background:#eef2f7;border:1px solid var(--line);border-radius:20px;padding:4px 9px;white-space:nowrap}
+/* ── 字号调节：--fs 由 JS 写，所有关键文字用 calc 乘上去 ── */
+.fsctl{display:inline-flex;align-items:center;gap:1px;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#fff}
+.fsctl button{border:0;background:#fff;font:600 12px/1 inherit;color:var(--ink2);padding:5px 8px;cursor:pointer}
+.fsctl button:hover{background:var(--brand-bg);color:var(--brand-d)}
+.fsctl b{font:600 11px/1 var(--mono);color:var(--muted);padding:0 2px;min-width:34px;text-align:center}
 .updbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:11px 14px;border-radius:var(--r-s);background:#fff5e6;border:1px solid #f0d6a8;color:#7a4d00;font-size:13px;line-height:1.65}
 .updbar .ic{font-size:16px}
 .updbar b{color:#5d3900}
@@ -487,6 +521,9 @@ window.addEventListener('error', function (ev) {
     <span class="dot"></span><span class="nm">2026年生产计划表) - 副本.xlsx</span>
   </div>
   <span class="ver" id="verTag" title="页面版本。换行号 / 比对前先看一眼这里 —— 对不上就是浏览器拿了旧缓存，按 Ctrl+F5 强制刷新。">v?</span>
+  <span class="fsctl" title="字号太小就调大。设置会自己记住。">
+    <button data-fs="down" title="小一点">A−</button><b id="fsTag">100%</b><button data-fs="up" title="大一点">A+</button>
+  </span>
   <button class="btn-ghost" id="btnOpen">换文件</button>
 </header>
 
@@ -538,6 +575,8 @@ window.addEventListener('error', function (ev) {
         </div>
         <div class="card-b">
           <div id="primaryBox"></div>
+          <div id="splitBox" style="margin-top:14px"></div>
+          <div id="memTip" class="sub" style="margin-top:12px"></div>
         </div>
       </div>
 
@@ -561,20 +600,6 @@ window.addEventListener('error', function (ev) {
             <div class="ms-list" id="colList"></div>
           </div>
           <div class="picked" id="colPicked" style="margin-top:12px"></div>
-
-          <div class="field" style="margin-top:18px">
-            <div class="field-label">再按什么细分
-              <span class="tag gray">可选 —— 每一组下面会出现一排可点的筛选项</span></div>
-            <div class="opt-row">
-              <select id="subSel"></select>
-              <button class="btn sm" id="addSub">+ 添加</button>
-            </div>
-            <div class="picked" id="subPicked" style="margin-top:9px"></div>
-            <div class="sub" style="margin-top:8px">
-              日期列可以选「<b>月份</b>」—— 这样每个装配人下面就会出现
-              <b>1月 20 · 2月 35 · 3月 18</b> 这样一排，点一下就只看那个月，数量也一起显示。
-            </div>
-          </div>
         </div>
       </div>
 
@@ -711,20 +736,12 @@ window.addEventListener('error', function (ev) {
       </div>
     </section>
 
-    <!-- ══════════ ④ 校验 ══════════ -->
+    <!-- ══════════ ④ 校验 —— 把统计结果回原表一行一行对一遍 ══════════ -->
     <section id="v-check" hidden>
       <div class="page-title">校验</div>
-      <div class="page-sub">先把坑找出来，免得统计完才发现数字不对。</div>
-
-      <div class="banner warn">
-        <span class="ic">!</span>
-        <div>在两张主力表上发现 <b>9 类问题、共 296 处</b>。带 <b>红色</b> 的会直接影响统计结果。</div>
-      </div>
-
-      <div class="card">
-        <div class="card-h"><span>校验规则</span><span class="spacer"></span><button class="btn sm" id="toggleAll">全选</button></div>
-        <div id="ruleList"></div>
-      </div>
+      <div class="page-sub">把统计出来的每一组，<b>回原表重新扫一遍</b>再逐行对账。
+        不用统计那份数据 —— 否则就是把同一份结果看两遍，等于没验。</div>
+      <div id="checkBody"></div>
     </section>
   </main>
 </div>
@@ -758,7 +775,7 @@ var FILE_NAME = '2026年生产计划表) - 副本.xlsx';
 
 /* 页面版本 —— 单文件应用没有文件名/哈希可看，只能自己在角落摆一个。
    改完这个文件就把版本号 +1，部署后顶部会显示出来，对不上就是缓存。 */
-var APP_VER = '1.21';
+var APP_VER = '1.22';
 
 /* 简化模式：以某一列为主 + 选要看哪些列，把记录原样列出来。不做任何聚合。
    时间分组 / 聚合统计项 / 筛选条件还留在代码里，把这里改成 false 就整套回来。 */
@@ -1094,6 +1111,125 @@ function subOptions(src){
   (src.timeCols || []).forEach(function (c){ out.push({ col:c.k, grain:'month' }); });
   return out;
 }
+
+/* 结果页每一组能选的细分列：**只看选了要显示的列**（第 3 步选了哪些，就用哪些），
+   日期列一律按「月份」分 —— 这就是「某个人某个月做了多少」。 */
+function subOptionsForGroup(){
+  var out = [], seen = {};
+  function push(o){
+    var k = subKey(o);
+    if (seen[k]) return;
+    seen[k] = 1; out.push(o);
+  }
+  S.showCols.forEach(function (c){
+    if (c === S.primary) return;
+    if (colKind(c) === 'date') push({ col:c, grain:'month' });
+    else push({ col:c, grain:null });
+  });
+  /* 日期列哪怕没勾上也能按月份细分 —— 「这个人每个月做多少」是最常问的 */
+  var src = SRC_OF();
+  if (src) (src.timeCols || []).forEach(function (t){
+    if (t.k !== S.primary) push({ col:t.k, grain:'month' });
+  });
+  return out;
+}
+
+/* ── 一格多人：「赖学文/覃志坚」本来是两个人 ──
+   全局开关 S.splitMulti 定默认，但**每一条可以单独覆盖**（S.splitRow[rid]）。
+   为什么给逐条的权力：同一列里「A/B」有时是两个人，有时就是一个名字里带斜杠，
+   只有看数据的人分得清。 */
+function primParts(r){
+  if (!S.primary) return null;
+  var v = r[S.primary];
+  if (isBlank(v)) return null;
+  var p = multi(v);
+  return (p.length > 1) ? p : null;
+}
+function rowSplits(r){
+  if (!primParts(r)) return false;
+  var ov = (S.splitRow || {})[r.__rid];
+  return (ov === undefined) ? !!S.splitMulti : !!ov;
+}
+/* 这一行归到哪几个组 */
+function groupKeysOf(r){
+  var parts = primParts(r);
+  if (!parts || !rowSplits(r)){
+    var v = r[S.primary];
+    return [isBlank(v) ? MISSKEY : String(v)];
+  }
+  return parts;
+}
+/* 这一组的值对得上这一行吗（原表核对要用同一套规则，否则会误报遗漏） */
+function rowMatchesGroup(r, g){
+  var v = r[S.primary];
+  if (g.miss) return isBlank(v);
+  var parts = primParts(r);
+  if (parts && rowSplits(r)) return parts.indexOf(String(g.key)) >= 0;
+  return String(v) === String(g.key);
+}
+
+/* ── 字号：顶栏 A− / A+。只改一个 CSS 变量，表格/标题/按钮全跟着变 ──
+   字号是「看的人的偏好」，跟哪张表没关系 —— 所以单独存一个全局的键，
+   一打开页面就生效，不用等导入文件。 */
+var FS_STEPS = [0.85, 1, 1.15, 1.35, 1.6];
+var LS_FS = 'moldstats_fs_v1';
+function applyFont(v){
+  v = +v; if (!isFinite(v)) v = 1;
+  v = Math.max(0.7, Math.min(1.8, v));
+  S.fontScale = v;
+  document.documentElement.style.setProperty('--fs', v);
+  var t = $('#fsTag'); if (t) t.textContent = Math.round(v * 100) + '%';
+  try { localStorage.setItem(LS_FS, String(v)); } catch (e){}
+}
+function bootFont(){
+  var v = 1;
+  try {
+    var raw = localStorage.getItem(LS_FS);
+    if (raw !== null && raw !== ''){ v = parseFloat(raw); if (!isFinite(v)) v = 1; }
+  } catch (e){}
+  applyFont(v);
+}
+function stepFont(dir){
+  var i = 1, k;
+  for (k = 0; k < FS_STEPS.length; k++) if (Math.abs(FS_STEPS[k] - S.fontScale) < 0.005) i = k;
+  i = Math.max(0, Math.min(FS_STEPS.length - 1, i + (dir > 0 ? 1 : -1)));
+  applyFont(FS_STEPS[i]);
+  saveCfg();
+}
+
+/* ── 记住上次填的（换 sheet 就换一套） ──
+   存的是「哪个文件的哪张表」下的主列 + 列 + 字号。
+   所以换 sheet 不会把上一张表的设置带过去 —— 每张表各记各的。 */
+var LS_KEY = 'moldstats_cfg_v1';
+function storeRead(){
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}') || {}; }
+  catch (e){ return {}; }          /* 隐私模式 / file:// 下可能直接抛，静默忽略 */
+}
+function storeWrite(o){ try { localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch (e){} }
+function sheetKey(){
+  var src = SRC_OF();
+  if (!src) return '';
+  return (S.fileLoaded ? FILE_NAME : '__示例__') + '\u0001' + src.name;
+}
+function saveCfg(){
+  var k = sheetKey();
+  if (!k) return;
+  var all = storeRead();
+  all[k] = { primary:S.primary, showCols:(S.showCols || []).slice(),
+             splitMulti:!!S.splitMulti };
+  storeWrite(all);
+}
+function restoreCfg(){
+  var k = sheetKey();
+  if (!k) return false;
+  var rec = storeRead()[k];
+  if (!rec) return false;
+  if (typeof rec.primary === 'string') S.primary = rec.primary;
+  if (Object.prototype.toString.call(rec.showCols) === '[object Array]') S.showCols = rec.showCols.slice();
+  if (typeof rec.splitMulti === 'boolean') S.splitMulti = rec.splitMulti;
+  return true;
+}
+function clearCfg(){ try { localStorage.removeItem(LS_KEY); } catch (e){} }
 
 /* 「行数」不依赖具体某一列，所以名字里不带列名 */
 function aggKey(col, agg){ return agg === 'rows' ? '行数' : col + ' · ' + AGG_NAME[agg]; }
@@ -1451,43 +1587,8 @@ var GROUPS = [
     sheets:[['Sheet4',39,9],['汽车模具临时工',15,10],['Sheet3',0,0],['Sheet10',0,0],['Sheet8',0,0],['Sheet12',0,0],['Sheet13',0,0],['Sheet14',0,0]]}
 ];
 
-/* ---------- 校验规则 ---------- */
-var RULES = [
-  { sec:'结构问题（已自动处理）', items:[
-    { n:'表头不在第一行', d:'总计划表、生产计划表表头都在第 2 行；「极品」表头在第 3 行', hits:43, ok:true },
-    { n:'责任人行混在表头下面', d:'总计划表第 3 行是各列责任人，已识别并排除 —— 否则「设计」会多出一个叫「设计」的设计员', hits:24, ok:true },
-    { n:'合并单元格', d:'总计划表「客户名称 / 订单编号 / 零件名称」纵向合并 96 处，已向下填充', hits:96, ok:true },
-    { n:'列名重复', d:'生产计划表里有两个「设计」列，第二个已改名 设计_2', hits:1, sev:'warn',
-      ex:[['生产计划表','第 2 行','I 列 设计 ／ AB 列 设计 → 设计、设计_2']] },
-    { n:'整表为空', d:'8 张表没有任何数据，统计时自动跳过', hits:8, ok:true }
-  ]},
-  { sec:'数据脏了', items:[
-    { n:'设计列疑似同一人两种写法', d:'「黄石长」和「黄石长WF」同时出现，WF 看着像外发标记。若当成两个人，设计工作量会被摊薄一半', hits:2, sev:'bad',
-      ex:[['生产计划表','I 列','黄石长 ／ 黄石长WF'],['生产计划表','I 列','罗永生 ／ 罗承永WF']] },
-    { n:'日期列混进文字', d:'写的是文字不是日期，无法参与「延期天数」计算 —— 会被当成「未交模」', hits:12, sev:'bad',
-      ex:[['2026年模具退维修','第 7 行','完成日期 = 未拉模具'],['Sheet7','第 7 行','计划模具移交时间 = 待客户确认'],['Sheet9','第 10 行','完成日期 = 调试模具'],['总计划表','第 7 行','实际交模日期 = 待客户确认']] },
-    { n:'一格塞了多个值', d:'「设计」「生产班组」一个格子里写了多人／多班组', hits:187, sev:'bad',
-      ex:[['总计划表','第 4 行','生产班组 = A/B/C'],['总计划表','第 9 行','设计 = 志/黄'],['总计划表','第 37 行','生产班组 = A/B'],['2026项目汇总','第 13 行','装配人 = 李千军/黄德健']] },
-    { n:'编号列带后缀', d:'「模具编号」混进中文，去重计数会把同一套模具算成两套', hits:6, sev:'warn',
-      ex:[['B','第 3 行','2612502新模具'],['铭牌喷字','第 7 行','259601 新模具'],['B','第 7 行','2512605 不改']] },
-    { n:'一个格子两个编号', d:'「261001/257011」这种，是改模前后的两个编号', hits:11, sev:'warn',
-      ex:[['总计划表','第 10 行','261001/257011'],['Sheet11','第 12 行','2510822/2613501'],['C','第 2 行','2510822/2613501']] },
-    { n:'单元格为空', d:'多为合并单元格原本的状态，已填充', hits:1834, ok:true }
-  ]},
-  { sec:'数字对不上（重点看）', items:[
-    { n:'交样／交模日期早于接单日期', d:'时间倒挂，多半是年份打错', hits:9, sev:'bad',
-      ex:[['总计划表','第 7 行','2604 · 接单 2025-12-22 ／ 客户交样 2025-01-22'],['总计划表','第 8 行','2605 · 接单 2025-12-22 ／ 客户交样 2025-01-05'],['总计划表','第 10 行','2607 · 接单 2025-12-27 ／ 客户交样 2025-01-22']] },
-    { n:'交模延期超过 30 天', d:'不是填错就是真的拖了很久，需要确认', hits:4, sev:'bad',
-      ex:[['总计划表','第 4 行','2601 · 计划 2026-01-08 ／ 实际 2026-03-31 → 延期 82 天'],['总计划表','第 7 行','2604 · 延期 29 天'],['总计划表','第 16 行','2613 · 延期 26 天'],['总计划表','第 26 行','2623 · 延期 26 天']] },
-    { n:'已过计划交模日期却还没交', d:'实际交模日期是空的，需要追', hits:2, sev:'warn',
-      ex:[['总计划表','第 6 行','2606 · 计划 2026-01-17 · 23 套 · 恒合'],['总计划表','第 26 行','2626 · 计划 2026-04-08 · 4 套 · 天驰']] },
-    { n:'工序表的模具编号在总计划表里找不到', d:'明细有、总表没有，多半是编号打错', hits:41, sev:'warn',
-      ex:[['生产计划表','第 318 行','2612502 → 总计划表无此编号'],['生产计划表','第 902 行','26642403 → 位数不对']] },
-    { n:'合格率大于 100%', d:'「送样合格率%」填成了送样数量', hits:3, sev:'bad',
-      ex:[['生产计划表','第 402 行','送样合格率% = 130']] }
-  ]}
-];
-
+/* 旧的硬编码校验规则（RULES）已删除 —— 它写死的是示例表的结论，
+   导入真文件后根本不会跑。这个页签现在装的是「回原表逐行对账」。 */
 /* ==========================================================================
    状态
    ========================================================================== */
@@ -1499,8 +1600,11 @@ var S = {
   splitMulti:true,
   primary:'',                            /* 不预填 —— 用户自己选，选之前给提醒 */
   showCols:[],                           /* 同上：不预填 */
-  subDims:[],                            /* 细分列：可选，默认也不填 */
-  subSel:{},                             /* 每个分组各自选了哪些细分值：{组值: {维序: {值:1}}} */
+  subDims:[],                            /* 旧字段：细分设置已搬到结果页，这里恒为空 */
+  grDims:{},                             /* 结果页每一组自己加的细分列：{组值: [{col,grain}]} */
+  subSel:{},                             /* 每一组各选了哪些细分值：{组值: {细分列key: {值:1}}} */
+  splitRow:{},                           /* 一格多人的逐条覆盖：{__rid: true/false} */
+  fontScale:1,                           /* 字号倍率 */
   openSet:{},                            /* 分组卡片的展开状态 */
   groupBy:[],                            /* 附加分组：在主索引之后再细分 */
   aggs:[{ col:'模具编号', agg:'uniq' },     /* 装配套数：一套模具多道工序只算一套 */
@@ -1514,10 +1618,7 @@ var S = {
   resView:'pivot',
   openGroups:['A'],
   tableOrder:['master','plan'],
-  sheetFilter:'',
-  rulesOn:RULES.reduce(function (acc, s){ return acc.concat(s.items); }, [])
-              .filter(function (r){ return !r.ok || r.sev === 'bad'; })
-              .map(function (r){ return r.n; })
+  sheetFilter:''
 };
 
 /* ========================================================================== */
@@ -1609,6 +1710,7 @@ function applyCfg(cfg){
   /* 换了表，之前手动删掉的、以及各组选的细分筛选都不算数了 */
   if (cfg.src !== prevSrc){ S.deleted = {}; }
   S.subSel = {};
+  S.grDims = {};
 
   if (UI_SIMPLE){
     /* 时间轴 / 附加分组 / 筛选条件先屏蔽 —— 留着代码，改 UI_SIMPLE 就回来 */
@@ -1617,17 +1719,22 @@ function applyCfg(cfg){
     S.conds = [];
     S.openSet = {};
   }
+
+  /* 换了 sheet 就把上次填的拿回来；模板点击带了 primary，就走模板不走记忆 */
+  if (!('primary' in cfg) && cfg.src !== prevSrc) restoreCfg();
 }
 
 /* ---------- 导航 ---------- */
 var NAV = [
-  { id:'source', label:'数据源', tip:'43 表', icon:'grid' },
+  { id:'source', label:'数据源', icon:'grid' },
   { id:'stat',   label:'做统计', icon:'calc' },
   { id:'result', label:'结果',   icon:'chart' },
-  { id:'check',  label:'校验',   tip:'296', icon:'check' }
+  { id:'check',  label:'校验',   icon:'check' }
 ];
+/* 校验页签上的角标 = 真的跑一遍对账的结果（没跑过就不显示） */
+var CHECK_TIP = '';
 function renderNav(){
-  var tipOf = { source: WB ? (WB.sheets.length + ' 表') : '示例', check: String(RULES.reduce(function (a, s){ return a + s.items.length; }, 0)) };
+  var tipOf = { source: WB ? (WB.sheets.length + ' 表') : '示例', check: CHECK_TIP };
   $('#rail').innerHTML = NAV.map(function (n){
     var tip = tipOf[n.id];
     return '<button class="rail-item ' + (S.view === n.id ? 'on' : '') + '" data-nav="' + n.id + '">' +
@@ -1652,6 +1759,7 @@ function go(v){
   if (v === 'source') renderSource();
   if (v === 'stat') renderStat();
   if (v === 'result') renderResult();
+  if (v === 'check') renderCheck();
 }
 
 /* ---------- ① 数据源 ---------- */
@@ -1778,21 +1886,47 @@ function renderStat(){
   var adv = $('#advCards'); if (adv) adv.hidden = UI_SIMPLE;
   if (UI_SIMPLE) renderColPicker(src, cols);
 
-  /* 细分列 —— 每一组下面那一排可点的筛选项 */
-  var ss = $('#subSel');
-  if (ss){
-    ss.innerHTML = subOptions(src).map(function (o){
-      return '<option value="' + esc(subKey(o)) + '">' + esc(subLabel(o)) + '</option>';
-    }).join('');
+  /* 一格多人 —— 直接影响每一组的人数。放在主列旁边，因为拆的就是主列那个值。 */
+  var splitRows = S.primary
+    ? src.rows.filter(function (r){ return !!primParts(r); })
+    : [];
+  var splitOn = splitRows.filter(function (r){ return rowSplits(r); }).length;
+  var overridden = splitRows.filter(function (r){
+    return (S.splitRow || {})[r.__rid] !== undefined;
+  }).length;
+  var sb = $('#splitBox');
+  if (sb){
+    if (!S.primary){
+      sb.innerHTML = '<div class="sub">选完主列，这里会告诉你这张表里有多少个格子写了多个人。</div>';
+    } else if (!splitRows.length){
+      sb.innerHTML = '<div class="sub">《' + esc(src.name) + '》的「' + esc(S.primary) +
+        '」这一列里没有「A/B」这种一格多人的写法，不需要拆。</div>';
+    } else {
+      sb.innerHTML =
+        '<label class="sw"><input type="checkbox" id="splitMulti"' +
+          (S.splitMulti ? ' checked' : '') +
+          '><span>一格多人：「赖学文/覃志坚」默认算两个人</span></label>' +
+        '<div class="sub" style="margin-top:6px">' +
+          '「' + esc(S.primary) + '」里有 <b>' + splitRows.length + '</b> 行是一个格子写了多个人。' +
+          '现在按拆开算（共 ' + splitOn + ' 条计入分组）；' +
+          '不拆的话就整格当成一个名字。<br>' +
+          '<b>每一条都能单独改</b> —— 结果里那种行上有个小按钮，点一下就把那一条切成另一种算法。' +
+          (overridden ? '（你已经单独改过 <b>' + overridden + '</b> 条）' : '') +
+        '</div>';
+    }
   }
-  var sp = $('#subPicked');
-  if (sp){
-    sp.innerHTML = S.subDims.length
-      ? S.subDims.map(function (d, i){
-          return '<span class="chip sel" data-del-sub="' + i + '"><span>' + esc(subLabel(d)) +
-            '</span><span class="x">×</span></span>';
-        }).join('')
-      : '<span class="sub">不选也行 —— 不选就是每个组一整块平铺出来</span>';
+
+  /* 这一张表上次填的东西记下来了 —— 写在明面上，顺手给个「忘掉」 */
+  var mt = $('#memTip');
+  if (mt){
+    var saved = storeRead()[sheetKey()];
+    var hasMem = !!(saved && (saved.primary || (saved.showCols && saved.showCols.length)));
+    mt.innerHTML = hasMem
+      ? ('✓ 记住你上次在这张表填的：主列 <b>' + esc(saved.primary || '（没选）') + '</b> · ' +
+         (saved.showCols || []).length + ' 列。换 sheet 各记各的，不会串。' +
+         ' <button class="btn sm" data-cfg-reset="1" style="margin-left:4px">忘掉</button>')
+      : '这张表还没有记住的填写。选完主列和列会自动记住 —— 下次导入同一个文件的同一张表，' +
+        '会自动填回来。';
   }
 
   renderNeeds();
@@ -1848,18 +1982,6 @@ function renderStat(){
         : '已关闭，按整张表汇总。') +
     '</div>';
   }
-
-  /* 一格多值开关 —— 直接影响装配量的算法 */
-  var multiRows = src.rows.filter(function (r){
-    return src.dims.some(function (d){ return d.split && multi(r[d.k]).length > 1; });
-  }).length;
-  $('#splitBox').innerHTML =
-    '<label class="sw"><input type="checkbox" id="splitMulti"' + (S.splitMulti ? ' checked' : '') +
-      '><span>一格多人：拆开各算一次</span></label>' +
-    '<div class="sub" style="margin-top:6px">' +
-      '表里有 <b>' + multiRows + '</b> 行是一个格子写了多个人（如「李千军/黄德健」）。' +
-      '勾选后两人各记一次（默认）；取消则只算第一个。' +
-    '</div>';
 
   /* 第 3 步：统计项 —— 选一列 + 选怎么算 */
   var mp = S.aggs.map(function (a, i){
@@ -2135,6 +2257,9 @@ function renderBlankCard(rep, nonAdd){
   box.innerHTML = html;
 }
 
+/* 可选来统计的列：**主列不在里面** —— 它已经当分组标题了，再选一遍是多余。 */
+function pickableCols(){ return colsOf().filter(function (c){ return c !== S.primary; }); }
+
 /* ── 选列下拉 ──
    要「选中的列一定会出现在结果里」，所以是个多选：
    点一下切换（反点）、全选 / 清空 / 反选，还能搜。 */
@@ -2156,7 +2281,7 @@ function renderColPicker(src, cols){
           return '<span class="chip sel" data-col-del="' + esc(c) + '"><span>' + esc(c) +
             '</span><span class="x">×</span></span>';
         }).join('')
-      : '<span class="sub">主列本身会当分组标题，不用再选一遍</span>';
+      : '<span class="sub">主列已经当分组标题了，所以这里不列它 —— 选别的列就行</span>';
   }
 
   renderColList();
@@ -2166,11 +2291,12 @@ function renderColPicker(src, cols){
 function renderColList(){
   var list = $('#colList');
   if (!list) return;
-  var cols = colsOf();
+  var cols = pickableCols();          /* 主列不在这份清单里 */
   var q = (($('#colSearch') || {}).value || '').trim();
   var kids = cols.filter(function (c){ return !q || c.indexOf(q) >= 0; });
   if (!kids.length){
-    list.innerHTML = '<div class="sub" style="padding:12px">没有匹配「' + esc(q) + '」的列</div>';
+    list.innerHTML = '<div class="sub" style="padding:12px">' +
+      (cols.length ? ('没有匹配「' + esc(q) + '」的列') : '这张表只有主列一列，没有别的可选') + '</div>';
     return;
   }
   list.innerHTML = kids.map(function (c){
@@ -2178,7 +2304,7 @@ function renderColList(){
     var k = colKind(c);
     return '<label class="ms-item' + (on ? ' on' : '') + '">' +
       '<input type="checkbox" data-col-pick="' + esc(c) + '"' + (on ? ' checked' : '') + '>' +
-      '<span class="nm">' + esc(c) + (c === S.primary ? '　（就是主列）' : '') + '</span>' +
+      '<span class="nm">' + esc(c) + '</span>' +
       '<span class="tag ' + (k === 'date' ? 'info' : k === 'num' ? 'ok' : 'gray') + '">' +
         ({ id:'编号', text:'文字', num:'数字', date:'日期' }[k]) + '</span></label>';
   }).join('');
@@ -2208,12 +2334,19 @@ function renderSimpleResult(){
   var all = compute().rows;
   var cols = S.showCols.filter(function (c){ return c !== S.primary; });
 
-  var map = {}, order = [];
+  /* 分组：一格多人拆分在**这里**做 ——
+     拆一条，这一行就同时出现在两个组下面（所以各组的条数加起来会大于总行数）。
+     不拆，就整格当一个名字（表格是什么字就什么字）。
+     每条自己拆不拆由 rowSplits(r) 决定，全局默认 + 逐条覆盖。 */
+  var map = {}, order = [], splitRows = [], splitExtra = 0;
   all.forEach(function (r){
-    var v = S.primary ? r[S.primary] : '';
-    var k = isBlank(v) ? MISSKEY : String(v);
-    if (!map[k]){ map[k] = []; order.push(k); }
-    map[k].push(r);
+    var isSplit = !!primParts(r) && rowSplits(r);
+    if (primParts(r)) splitRows.push(r);
+    if (isSplit) splitExtra += primParts(r).length - 1;
+    groupKeysOf(r).forEach(function (k){
+      if (!map[k]){ map[k] = []; order.push(k); }
+      map[k].push(r);
+    });
   });
   order.sort(function (a, b){
     if (a === MISSKEY) return -1;
@@ -2228,11 +2361,16 @@ function renderSimpleResult(){
                 给个空值免得报 “Cannot read properties of undefined” */
              out:[], dm:[], sorted:[], sortKey:null, pivot:null };
 
-  $('#resSub').textContent = src.name + ' · 以【' + (S.primary || '（未选）') + '】为主 · ' +
-    all.length + ' 条记录 · ' + grps.length + ' 组';
+  $('#resSub').innerHTML = esc(src.name) + ' · 以【' + esc(S.primary || '（未选）') + '】为主 · ' +
+    '<b>' + all.length + '</b> 条记录 · <b>' + grps.length + '</b> 组' +
+    (splitExtra
+      ? '　<span class="tag info">其中 ' + splitRows.filter(function (r){ return rowSplits(r); }).length +
+        ' 行是一格多人，拆开后共 <b>' + (all.length + splitExtra) + '</b> 条计入分组</span>'
+      : '');
 
-  /* 口径说明：把「不去重」「删了几条」写在明面上 */
+  /* 口径说明：把「不去重」「删了几条」「拆没拆」写在明面上 */
   var delN = Object.keys(S.deleted).length;
+  var splitOnRows = splitRows.filter(function (r){ return rowSplits(r); }).length;
   var blanks = {};
   cols.forEach(function (c){
     var n = 0;
@@ -2244,6 +2382,14 @@ function renderSimpleResult(){
     '\n<b>主</b> ' + esc(S.primary || '（未选）') +
     '\n<b>列</b> ' + (cols.length ? cols.map(esc).join(', ') : '（未选）') +
     '\n<b>去重</b> 没有做任何去重 —— 一条原始记录就是一行结果' +
+    '\n<b>一格多人</b> ' + (splitOnRows
+        ? ('「' + esc(S.primary) + '」里有 ' + splitOnRows + ' 行按 / 、拆开各算一次，' +
+           '所以各组条数加起来是 ' + (all.length + splitExtra) + ' 条，比 ' + all.length +
+           ' 行多 ' + splitExtra + ' 条 —— 那是拆出来的，不是重复')
+        : (splitRows.length
+            ? ('「' + esc(S.primary) + '」里有 ' + splitRows.length + ' 行是一格多人，' +
+               '当前<b>没有拆开</b>，整格当一个名字算')
+            : '没有一格多人的写法')) +
     '\n<b>删除</b> ' + (delN ? ('已从本次统计里排除 ' + delN + ' 条（未改动原文件）') : '没有排除任何记录') +
     '\n<b>空缺</b> ' + (Object.keys(blanks).length
         ? Object.keys(blanks).map(function (c){ return esc(c) + ' ' + blanks[c] + ' 条'; }).join('；')
@@ -2305,22 +2451,28 @@ function renderSimpleResult(){
       ' 条重新数的。点「恢复已删除的」可以放回来。</div></div>');
   }
 
-  /* 默认只展开前几组 —— 列看得见（满足「选中的列一定会出现」），
-     但页面不会一下子上千行。想全看就点「全部展开」。 */
-  var openFirst = 3;
+  /* 默认**全部收起** —— 一进来就是一页名单，点哪个展开哪个，
+     展开里再自己选按什么细分。想全看就点「全部展开」。
+     openFlags 存下来给点击事件用：不然「展开/收起」会自己再算一遍默认值，
+     算得跟渲染不一致 —— 点一下反而把已经展开的收起来了。 */
+  var openFirst = 0;
+  var openFlags = [];
   var allShown = [];          /* 各组细分筛完之后的记录，按组顺序 —— 导出就照这个来 */
   var shownOf = {};           /* 每组实际显示了几行 */
+  var subOptionsAll = subOptionsForGroup();
   grps.forEach(function (g, i){
     var open = (S.openSet[g.key] === undefined) ? (i < openFirst) : !!S.openSet[g.key];
+    openFlags[i] = open;
 
     /* 细分：先算好每个细分列在这一组里的取值分布，再按选中的筛一遍。
        每个组各选各的 —— 「在某个装配人下面看某个月」就是这个意思。 */
     var sel = S.subSel[g.key] || {};
+    var dims = S.grDims[g.key] || [];
     var chips = [];
     var shown = g.rows;
-    if (S.subDims.length){
-      S.subDims.forEach(function (d, di){
-        var cnt = {}, ord = [];
+    if (dims.length){
+      dims.forEach(function (d){
+        var dk = subKey(d), cnt = {}, ord = [];
         g.rows.forEach(function (r){
           var v = subVal(d, r);
           var k = (v === null) ? MISSSUB : v;
@@ -2331,13 +2483,13 @@ function renderSimpleResult(){
           return subSortKey(d, a === MISSSUB ? null : a)
             .localeCompare(subSortKey(d, b === MISSSUB ? null : b), 'zh-CN', { numeric: true });
         });
-        chips.push({ d:d, di:di, cnt:cnt, ord:ord });
+        chips.push({ d:d, dk:dk, cnt:cnt, ord:ord });
       });
       shown = g.rows.filter(function (r){
-        for (var di = 0; di < S.subDims.length; di++){
-          var picked = sel[di];
+        for (var di = 0; di < dims.length; di++){
+          var picked = sel[subKey(dims[di])];
           if (!picked || !Object.keys(picked).length) continue;
-          var v = subVal(S.subDims[di], r);
+          var v = subVal(dims[di], r);
           if (!picked[(v === null) ? MISSSUB : v]) return false;
         }
         return true;
@@ -2347,12 +2499,12 @@ function renderSimpleResult(){
     allShown = allShown.concat(shown);
     shownOf[g.key] = shown.length;
 
-    h.push('<div class="gr' + (g.miss ? ' misskey' : '') + '">' +
+    h.push('<div class="gr' + (open ? ' open' : '') + (g.miss ? ' misskey' : '') + '">' +
       '<div class="gr-hd" data-gr-toggle="' + i + '">' +
         '<span class="nm">' + (g.miss ? '（' + esc(S.primary || '主列') + '为空）' : esc(g.key)) + '</span>' +
         '<span class="n">' + (filtered
-            ? '<b class="on">' + shown.length + '</b> / ' + g.rows.length + ' 条'
-            : g.rows.length + ' 条') + '</span>' +
+            ? '<b class="bigN">' + shown.length + '</b><span class="bigN dim">/ ' + g.rows.length + ' 条</span>'
+            : '<b class="bigN">' + g.rows.length + '</b><span class="bigN dim">条</span>') + '</span>' +
         '<span class="sp"></span>' +
         '<button class="vfbtn" data-verify="' + i + '"' +
           ' title="在原表里核对这一组的行：只读打开，不改 Excel 文件、不改统计结果">原表核对</button>' +
@@ -2360,6 +2512,22 @@ function renderSimpleResult(){
       '</div>');
 
     if (open && drawn < CAP){
+      /* 组内选细分列 —— 从统计页搬过来的，就在展开区域的第一行 */
+      if (subOptionsAll.length){
+        var used = {};
+        dims.forEach(function (d){ used[subKey(d)] = 1; });
+        h.push('<div class="gr-subbar">' +
+          '<span class="sb-n">按什么细分</span>' +
+          '<select data-sub-add="' + i + '">' +
+            '<option value="">— 加一个细分列 —</option>' +
+            subOptionsAll.filter(function (o){ return !used[subKey(o)]; }).map(function (o){
+              return '<option value="' + esc(subKey(o)) + '">' + esc(subLabel(o)) + '</option>';
+            }).join('') +
+          '</select>' +
+          '<span class="sub">日期列按<b>月份</b>分 · 这一组共 <b>' + g.rows.length + '</b> 条</span>' +
+        '</div>');
+      }
+
       /* 细分筛选条 —— 想要哪个值点哪个，后面就是它的条数 */
       if (chips.length){
         h.push('<div class="gr-sub">' + chips.map(function (c){
@@ -2367,16 +2535,18 @@ function renderSimpleResult(){
             '<span class="sd-n">' + esc(subLabel(c.d)) + '</span>' +
             c.ord.map(function (k){
               var miss = (k === MISSSUB);
-              var on = sel[c.di] && sel[c.di][k];
+              var on = sel[c.dk] && sel[c.dk][k];
               return '<button class="sdv' + (on ? ' on' : '') + '"' +
-                ' data-sub-g="' + i + '" data-sub-d="' + c.di + '"' +
+                ' data-sub-g="' + i + '" data-sub-key="' + esc(c.dk) + '"' +
                 (miss ? ' data-sub-miss="1"' : ' data-sub-v="' + esc(k) + '"') +
                 ' title="点一下只看这个值；再点一下取消">' +
                 esc(subShow(c.d, miss ? null : k)) + '<b>' + c.cnt[k] + '</b></button>';
             }).join('') +
-            ((sel[c.di] && Object.keys(sel[c.di]).length)
-              ? '<button class="sd-clr" data-sub-clr="' + i + '" data-sub-d="' + c.di + '">清除</button>'
+            ((sel[c.dk] && Object.keys(sel[c.dk]).length)
+              ? '<button class="sd-clr" data-sub-clr="' + i + '" data-sub-key="' + esc(c.dk) + '">清除</button>'
               : '') +
+            '<button class="sd-clr" data-sub-rm="' + i + '" data-sub-key="' + esc(c.dk) + '"' +
+              ' title="把这一个细分列整个拿掉">× 去掉这层</button>' +
             '</div>';
         }).join('') + '</div>');
       }
@@ -2392,11 +2562,19 @@ function renderSimpleResult(){
           '</tr></thead><tbody>' +
           body.map(function (r){
             var bad = rowHasBlank(r, chkCols);
+            var parts = primParts(r);
+            var spBtn = parts
+              ? '<button class="splbtn' + (rowSplits(r) ? '' : ' off') + '" data-spl-row="' +
+                esc(r.__rid) + '" title="这一格写了 ' + parts.length +
+                ' 个名字 —— 点一下改成' + (rowSplits(r) ? '只算第一个' : '拆开各算一次') + '">' +
+                '⇄ ' + (rowSplits(r) ? '拆 ' + parts.length : '不拆') + '</button>'
+              : '';
             return '<tr>' +
               '<td class="del-td">' + (bad
                 ? '<button class="rowdel" data-del-row="' + esc(r.__rid) + '" ' +
                   'title="这条有空缺 —— 点一下从统计里去掉（不动原文件）">×</button>'
                 : '') + '</td>' +
+              (parts ? '<td class="spl-td">' + spBtn + '</td>' : '') +
               cols.map(function (c){
                 var v = r[c];
                 return isBlank(v) ? '<td><span class="miss">空缺</span></td>'
@@ -2415,6 +2593,8 @@ function renderSimpleResult(){
   S.last.rowsOut = allShown;
   S.last.subFiltered = (allShown.length !== all.length);
   S.last.shownOf = shownOf;      /* 每组实际显示了几行 —— 核对报告要用来分辨「你自己筛掉的」 */
+  S.last.openFlags = openFlags;  /* 每组当前是不是展开的 —— 点击事件照这个反转 */
+  S.last.subOptions = subOptionsAll;
   $('#simpleResult').innerHTML = h.join('');
 }
 
@@ -2450,21 +2630,22 @@ function vfScan(gidx){
     if (aSeen[n]) aDup.push(n); else { aSeen[n] = 1; aList.push(n); }
   });
 
-  /* ── 乙面：回原始解析结果，从头扫一遍 ── */
+  /* ── 乙面：回原始解析结果，从头扫一遍 ──
+     用的是 rowMatchesGroup() —— 跟分组完全同一套规则（含一格多人拆开）。
+     如果两边规则不一样，拆开的那些行会被报成「漏掉」，那是假警报，比不报还糟。 */
   var sheet = (WB && WB.sheets) ? WB.sheets[src.sheetIdx] : null;
   var t = (sheet && sheet.table) || null;
-  var bList = [], bSeen = {}, bDup = [], bDeleted = {};
+  var bList = [], bSeen = {}, bDup = [], bDeleted = {}, bSplits = 0;
   if (t){
     for (var i = 0; i < t.rows.length; i++){
       var r = t.rows[i];
-      var v = r[prim];
-      if (v === undefined) continue;                       /* 这行根本没这一列 */
-      var mine = g.miss ? isBlank(v) : (String(v) === String(g.key));
-      if (!mine) continue;
+      if (r[prim] === undefined) continue;                 /* 这行根本没这一列 */
+      if (!rowMatchesGroup(r, g)) continue;
       var n = r.__row;
       if (n === undefined) continue;
       if (bSeen[n]) bDup.push(n); else { bSeen[n] = 1; bList.push(n); }
       if (S.deleted && S.deleted[r.__rid]) bDeleted[n] = 1;
+      if (rowSplits(r) && primParts(r)) bSplits += primParts(r).length - 1;
     }
   }
   bList.sort(function (x, y){ return x - y; });
@@ -2482,13 +2663,20 @@ function vfScan(gidx){
   var ok = (!miss.length && !onlyStat.length && !aDup.length && !bDup.length);
 
   return {
+    gidx: gidx,
     label: g.miss ? '（' + (prim || '主列') + '为空）' : String(g.key),
     key: g.key, miss: g.miss, prim: prim, colIx: colIx,
     stat: aList, sheet: bList, statSet: aSeen, sheetSet: bSeen,
     onlySheet: onlySheet, onlyStat: onlyStat, manual: manual, realMiss: miss,
-    aDup: aDup, bDup: bDup, subOut: subOut, ok: ok,
+    aDup: aDup, bDup: bDup, subOut: subOut, ok: ok, splits: bSplits,
     scanned: t ? t.rows.length : 0
   };
+}
+
+/* 校验页开着的时候，数据一变就把结论重算 —— 否则页面上的数字会跟结果页脱节 */
+function renderCheckIfOpen(){
+  if (S.view !== 'check') return;
+  renderCheck();
 }
 
 function openVerify(gidx){
@@ -3072,6 +3260,11 @@ function metaLines(){
         ((L.rowsOut || []).length) + ' 条（不是全部）');
     }
     lines.push('去重：没有做任何去重 —— 一条原始记录就是一行结果');
+    lines.push('一格多人：' + (S.splitMulti
+      ? '「赖学文/覃志坚」这类按 / 、拆开各算一次'
+      : '不拆，整格当一个名字算') +
+      (Object.keys(S.splitRow || {}).length
+        ? ('；另有 ' + Object.keys(S.splitRow).length + ' 条被单独指定过') : ''));
     lines.push('空缺：单元格为空时写「空缺」，不做任何推测或填充');
     lines.push('手动删除：' + (Object.keys(S.deleted || {}).length
       ? ('本次统计已排除 ' + Object.keys(S.deleted).length + ' 条（未改动原始文件）')
@@ -3519,26 +3712,143 @@ function exportPdf(){
   setTimeout(function (){ document.title = old; }, 800);
 }
 
-function renderRules(){
-  $('#ruleList').innerHTML = RULES.map(function (sec){
-    return '<div class="rule-h">' + esc(sec.sec) + '</div>' + sec.items.map(function (it){
-      var on = S.rulesOn.indexOf(it.n) >= 0;
-      var body = '<button class="rule ' + (on ? 'on' : '') + '" data-rule="' + esc(it.n) + '">' +
-        '<span class="cbx">' + (on ? '✓' : '') + '</span><span class="bd">' +
-        '<span class="tt">' + esc(it.n) + '<span class="tag ' + (it.ok ? 'ok' : (it.sev || 'gray')) + '">' +
-          (it.ok ? '已自动处理' : it.hits + ' 处') + '</span></span>' +
-        '<span class="dd">' + esc(it.d) + '</span></span></button>';
-      if (it.ex && on){
-        body += '<div class="finding">' + it.ex.map(function (e){
-          return '<div class="fr"><span class="loc">' + esc(e[0]) + ' · ' + esc(e[1]) +
-            '</span><span class="bad-v">' + esc(e[2]) + '</span></div>';
-        }).join('') +
-        '<div class="fr"><span class="sub">… 共 ' + it.hits +
-          ' 处，<span style="color:var(--brand);font-weight:600">全部展开 ›</span></span></div></div>';
-      }
-      return body;
-    }).join('');
-  }).join('');
+/* ══════════════════════════════════════════════════════════════════
+   校验 —— 一键把所有组回原表对一遍
+
+   这里只负责「把 vfScan 跑一遍然后汇总」，对账逻辑全在 vfScan 里，
+   跟结果页的「原表核对」用的是同一套 —— 两处结论必须一致，否则更让人糊涂。
+   ══════════════════════════════════════════════════════════════════ */
+function checkAll(){
+  var src = SRC_OF();
+  if (!src || !S.primary || !S.last || !S.last.groups) return null;
+  var reps = [];
+  for (var i = 0; i < S.last.groups.length; i++){
+    var r = vfScan(i);
+    if (r) reps.push(r);
+  }
+  var bad = reps.filter(function (r){ return !r.ok; });
+  var sum = {
+    groups: reps.length,
+    rows: reps.reduce(function (a, r){ return a + r.stat.length; }, 0),
+    sheetRows: reps.reduce(function (a, r){ return a + r.sheet.length; }, 0),
+    miss: reps.reduce(function (a, r){ return a + r.realMiss.length; }, 0),
+    extra: reps.reduce(function (a, r){ return a + r.onlyStat.length; }, 0),
+    dup: reps.reduce(function (a, r){ return a + r.aDup.length; }, 0),
+    manual: reps.reduce(function (a, r){ return a + r.manual.length; }, 0)
+  };
+  return { reps: reps, bad: bad, sum: sum, scanned: reps.length ? reps[0].scanned : 0,
+           colIx: reps.length ? reps[0].colIx : undefined, prim: S.primary };
+}
+
+function renderCheck(){
+  var box = $('#checkBody');
+  if (!box) return;
+  var src = SRC_OF();
+
+  /* 没选主列就没法核对 —— 先把人叫回去选 */
+  if (!src || !S.primary){
+    box.innerHTML = '<div class="card"><div class="card-b">' +
+      '<div class="banner warn" style="margin:0 0 12px"><span class="ic">!</span><div>' +
+      '还没选<b>以哪一列为主</b>，没有东西可以核对。</div></div>' +
+      '<button class="btn pri" data-nav="stat">去「做统计」选主列 →</button>' +
+      '</div></div>';
+    return;
+  }
+  /* 统计还没跑过：先跑一次，否则 S.last 是空的 */
+  if (!S.last || !S.last.groups || !S.last.groups.length) renderSimpleResult();
+
+  var t0 = Date.now();
+  var rep = checkAll();
+  if (!rep){
+    box.innerHTML = '<div class="card"><div class="card-b sub">这张表还没有可核对的分组。</div></div>';
+    return;
+  }
+  var s = rep.sum, ms = Date.now() - t0;
+  CHECK_TIP = rep.bad.length ? ('差 ' + rep.bad.length + ' 组') : ('✓ ' + s.groups + ' 组');
+  var primCol = (rep.colIx === undefined)
+    ? '<b>（算出来的派生列，原表里没有这一列 —— 只能按行号对）</b>'
+    : '<b>' + colLetter(rep.colIx) + ' 列</b>（原表从左数第 ' + (rep.colIx + 1) + ' 列）';
+
+  var h = [];
+
+  /* 结论 */
+  h.push('<div class="banner ' + (rep.bad.length ? 'bad' : 'ok') + '">' +
+    '<span class="ic">' + (rep.bad.length ? '✕' : '✓') + '</span><div>' +
+    (rep.bad.length
+      ? ('<b>' + rep.bad.length + '</b> 组对不上，另外 ' + (s.groups - rep.bad.length) + ' 组没问题。' +
+         '往下看具体是哪几组。')
+      : ('<b>全部 ' + s.groups + ' 组都对上了</b> —— 回到原表重扫一遍，行号一个个都对得上，' +
+         '没有漏、没有多、没有重复。')) +
+    '<div class="sub" style="margin-top:6px">' +
+      '统计这边 <b>' + s.rows + '</b> 条 / 原表重扫 <b>' + s.sheetRows + '</b> 条 · ' +
+      '扫了整张表 <b>' + rep.scanned + '</b> 行 · 主列 <code>' + esc(rep.prim) + '</code> = ' + primCol +
+      ' · 耗时 ' + ms + ' ms</div>' +
+    '</div></div>');
+
+  /* 数字小结 */
+  h.push('<div class="card"><div class="card-h"><span>对账小结</span>' +
+    '<span class="spacer"></span><span class="hint">差集都是按「行号」算的</span></div>' +
+    '<div class="card-b"><div class="kpis" style="margin:0">' +
+      kpiBox('漏掉的', s.miss, s.miss ? 'bad' : 'ok', '原表里有、统计结果里没有') +
+      kpiBox('多出来的', s.extra, s.extra ? 'bad' : 'ok', '统计里有、原表找不到') +
+      kpiBox('重复添加', s.dup, s.dup ? 'bad' : 'ok', '同一条被算了两次以上') +
+      kpiBox('手动删除的', s.manual, '', '你自己删的，不算漏') +
+    '</div></div></div>');
+
+  /* 出问题的组 */
+  if (rep.bad.length){
+    h.push('<div class="card"><div class="card-h"><span>对不上的组</span>' +
+      '<span class="spacer"></span><span class="hint">按行数差得最多的排前面</span></div>' +
+      '<div>' + rep.bad.slice().sort(function (a, b){
+        return (b.realMiss.length + b.onlyStat.length + b.aDup.length) -
+               (a.realMiss.length + a.onlyStat.length + a.aDup.length);
+      }).map(function (r){
+        var bits = [];
+        if (r.realMiss.length) bits.push('漏了 <b>' + r.realMiss.length + '</b> 行：' +
+          r.realMiss.slice(0, 40).join(', ') + (r.realMiss.length > 40 ? ' …' : ''));
+        if (r.onlyStat.length) bits.push('多了 <b>' + r.onlyStat.length + '</b> 行：' +
+          r.onlyStat.slice(0, 40).join(', ') + (r.onlyStat.length > 40 ? ' …' : ''));
+        if (r.aDup.length) bits.push('重复 <b>' + r.aDup.length + '</b> 行：' + r.aDup.join(', '));
+        return '<div class="ckrow bad"><span class="nm2">' + esc(r.label) + '</span>' +
+          '<span class="num">' + r.stat.length + ' / ' + r.sheet.length + '</span>' +
+          '<span class="sub" style="flex:1;min-width:200px">' + bits.join('　·　') + '</span>' +
+          '<button class="btn sm" data-open-vf="' + r.gidx + '">看原表</button></div>';
+      }).join('') + '</div></div>');
+  }
+
+  /* 全部组的清单 */
+  h.push('<div class="card"><div class="card-h"><span>全部 ' + s.groups + ' 组</span>' +
+    '<span class="spacer"></span><span class="hint">甲面 = 统计给出的 · 乙面 = 回原表重扫的</span>' +
+    '<button class="btn sm" data-gr-openall="1">全部展开</button></div>' +
+    '<div>' + rep.reps.map(function (r){
+      return '<div class="ckrow' + (r.ok ? '' : ' bad') + '">' +
+        '<span class="nm2">' + esc(r.label) + '</span>' +
+        '<span class="num">' + r.stat.length + ' / ' + r.sheet.length + '</span>' +
+        '<span class="sub" style="flex:1">' +
+          (r.ok ? '✓ 对上了'
+                : '✕' + (r.realMiss.length ? ' 漏 ' + r.realMiss.length : '') +
+                  (r.onlyStat.length ? ' 多 ' + r.onlyStat.length : '') +
+                  (r.aDup.length ? ' 重复 ' + r.aDup.length : '')) +
+          (r.manual.length ? '（另有 ' + r.manual.length + ' 行是你删的）' : '') + '</span>' +
+        '<button class="btn sm" data-open-vf="' + r.gidx + '">看原表</button></div>';
+    }).join('') + '</div></div>');
+
+  h.push('<div class="card"><div class="card-b sub">' +
+    '<b>这一页不看你统计时用的那份数据。</b>甲面是统计给出的行号，' +
+    '乙面是拿着主列的值直接回解析出来的原始行重新扫一遍 —— 不加筛选、不去重、不删行。' +
+    '两面做差集，才有意义。「手动删除的」会单独算，不算漏。' +
+    (s.splits ? '<br><b>一格多人</b>：主列里有斜杠的行按拆开算，甲面乙面用的是同一套规则，' +
+      '所以拆开不会被报成重复（本次拆出 ' + s.splits + ' 条）。' : '') +
+    '<br>「看原表」按钮打开的就是结果页里那个只读弹层，不会改你的 Excel 文件。</div></div>');
+
+  box.innerHTML = h.join('');
+}
+
+function kpiBox(label, val, tone, tip){
+  return '<div class="kpi' + (tone ? ' ' + tone : '') + '">' +
+    '<div class="k">' + esc(label) + '</div>' +
+    '<div class="v">' + val + '</div>' +
+    '<div class="d">' + esc(tip) + '</div></div>';
 }
 
 /* ==========================================================================
@@ -3601,18 +3911,18 @@ document.addEventListener('click', function (e){
     return;
   }
   if (e.target.closest('[data-col-all]')){
-    S.showCols = colsOf().slice(); renderColPicker(SRC_OF()); return;
+    S.showCols = pickableCols().slice(); saveCfg(); renderColPicker(SRC_OF()); return;
   }
   if (e.target.closest('[data-col-none]')){
-    S.showCols = []; renderColPicker(SRC_OF()); return;
+    S.showCols = []; saveCfg(); renderColPicker(SRC_OF()); return;
   }
   if (e.target.closest('[data-col-inv]')){
-    S.showCols = colsOf().filter(function (c){ return S.showCols.indexOf(c) < 0; });
-    renderColPicker(SRC_OF()); return;
+    S.showCols = pickableCols().filter(function (c){ return S.showCols.indexOf(c) < 0; });
+    saveCfg(); renderColPicker(SRC_OF()); return;
   }
   if ((el = e.target.closest('[data-col-del]'))){
     S.showCols = S.showCols.filter(function (c){ return c !== el.dataset.colDel; });
-    renderColPicker(SRC_OF()); return;
+    saveCfg(); renderColPicker(SRC_OF()); return;
   }
 
   /* ── 手动删除某一条（只是从这次统计里排除，不动原文件） ── */
@@ -3639,14 +3949,14 @@ document.addEventListener('click', function (e){
     renderResult(); return;
   }
 
-  /* ── 细分筛选：点一个值只看它，再点一下取消（每个组各选各的） ── */
+  /* ── 细分：点一个值只看它，再点一下取消。每个组、每个细分列各选各的 ── */
   if ((el = e.target.closest('[data-sub-g]'))){
     var sg = (S.last && S.last.groups) ? S.last.groups[+el.dataset.subG] : null;
     if (sg){
+      var skk = el.dataset.subKey;
       var sk = el.dataset.subMiss ? MISSSUB : el.dataset.subV;
-      var sd0 = +el.dataset.subD;
       S.subSel[sg.key] = S.subSel[sg.key] || {};
-      var m0 = S.subSel[sg.key][sd0] = S.subSel[sg.key][sd0] || {};
+      var m0 = S.subSel[sg.key][skk] = S.subSel[sg.key][skk] || {};
       if (m0[sk]) delete m0[sk]; else m0[sk] = 1;
       renderResult();
     }
@@ -3655,20 +3965,42 @@ document.addEventListener('click', function (e){
   if ((el = e.target.closest('[data-sub-clr]'))){
     var sg2 = (S.last && S.last.groups) ? S.last.groups[+el.dataset.subClr] : null;
     if (sg2 && S.subSel[sg2.key]){
-      delete S.subSel[sg2.key][+el.dataset.subD];
+      delete S.subSel[sg2.key][el.dataset.subKey];
       renderResult();
     }
     return;
   }
-  if ((el = e.target.closest('[data-del-sub]'))){
-    S.subDims.splice(+el.dataset.delSub, 1);
-    S.subSel = {};
-    renderStat(); return;
+  /* 把这一组的某个细分列整个拿掉 */
+  if ((el = e.target.closest('[data-sub-rm]'))){
+    var sg3 = (S.last && S.last.groups) ? S.last.groups[+el.dataset.subRm] : null;
+    if (sg3){
+      var kk = el.dataset.subKey;
+      S.grDims[sg3.key] = (S.grDims[sg3.key] || []).filter(function (d){ return subKey(d) !== kk; });
+      if (S.subSel[sg3.key]) delete S.subSel[sg3.key][kk];
+      renderResult();
+    }
+    return;
+  }
+  /* 一格多人：自己决定这一条算一个人还是拆成两个 */
+  if ((el = e.target.closest('[data-spl-row]'))){
+    var rid = el.dataset.splRow;
+    var rowObj = null, rs = (S.last && S.last.rows) || [];
+    for (var ri = 0; ri < rs.length && !rowObj; ri++) if (rs[ri].__rid === rid) rowObj = rs[ri];
+    var now = rowObj ? rowSplits(rowObj) : !!S.splitMulti;
+    S.splitRow = S.splitRow || {};
+    S.splitRow[rid] = !now;
+    renderResult(); refreshVerify(); renderCheckIfOpen();
+    return;
   }
 
   /* ── 原表核对：必须排在 [data-gr-toggle] 前面，否则会被展开/收起吃掉 ── */
   if ((el = e.target.closest('[data-verify]'))){
     openVerify(+el.dataset.verify);
+    return;
+  }
+  /* 校验页里的「看原表」 */
+  if ((el = e.target.closest('[data-open-vf]'))){
+    openVerify(+el.dataset.openVf);
     return;
   }
   if (e.target.closest('#vfClose') || e.target.closest('.modal-bd')){
@@ -3678,14 +4010,34 @@ document.addEventListener('click', function (e){
     if (S.vf){ S.vf.all = !S.vf.all; renderVerify(); }
     return;
   }
+  /* 字号 */
+  if ((el = e.target.closest('[data-fs]'))){
+    stepFont(el.dataset.fs === 'up' ? 1 : -1);
+    return;
+  }
+  /* 清空记住的填写 */
+  if (e.target.closest('[data-cfg-reset]')){
+    var k0 = sheetKey();
+    var all0 = storeRead();
+    if (k0) delete all0[k0];        /* 只忘掉当前这张表，别的表还留着 */
+    storeWrite(all0);
+    S.primary = ''; S.showCols = []; S.splitRow = {}; S.grDims = {}; S.subSel = {};
+    S.openSet = {};
+    renderStat();
+    return;
+  }
 
   /* ── 简化模式：分组展开／收起 ── */
   if ((el = e.target.closest('[data-gr-toggle]'))){
     var gs = (S.last && S.last.groups) || [];
-    var g = gs[+el.dataset.grToggle];
+    var gi0 = +el.dataset.grToggle;
+    var g = gs[gi0];
     if (g){
-      var cur = (S.openSet[g.key] === undefined) ? true : !!S.openSet[g.key];
-      S.openSet[g.key] = !cur;
+      /* 直接用渲染时定下来的那个状态取反，不要重新推默认值 */
+      var wasOpen = (S.last.openFlags && S.last.openFlags[gi0] !== undefined)
+        ? !!S.last.openFlags[gi0]
+        : false;
+      S.openSet[g.key] = !wasOpen;
       renderResult();
     }
     return;
@@ -3714,11 +4066,6 @@ document.addEventListener('click', function (e){
     S.drill = (S.drill && S.drill.dim === dim && S.drill.val === val) ? null : { dim:dim, val:val };
     renderResult(); return;
   }
-  if ((el = e.target.closest('[data-rule]'))){
-    var n = el.dataset.rule, k = S.rulesOn.indexOf(n);
-    if (k >= 0) S.rulesOn.splice(k, 1); else S.rulesOn.push(n);
-    renderRules(); return;
-  }
   if ((el = e.target.closest('[data-rv]'))){
     S.resView = el.dataset.rv;
     $$('#resView button').forEach(function (x){ x.classList.toggle('on', x === el); });
@@ -3742,6 +4089,7 @@ document.addEventListener('change', function (e){
     var pc = e.target.dataset.colPick;
     var at = S.showCols.indexOf(pc);
     if (at >= 0) S.showCols.splice(at, 1); else S.showCols.push(pc);
+    saveCfg();
     renderColPicker(SRC_OF());
     return;
   }
@@ -3757,17 +4105,44 @@ document.addEventListener('change', function (e){
   }
   if (e.target.id === 'primarySel'){
     S.primary = e.target.value;
+    /* 主列不能再出现在「要统计哪些列」里 —— 它已经是分组标题了 */
+    S.showCols = S.showCols.filter(function (c){ return c !== S.primary; });
     /* 同一个列不能既是主索引又是附加分组 / 时间轴 */
     S.groupBy = S.groupBy.filter(function (g){ return g !== S.primary; });
     if (S.primary && S.time.on && S.time.col === S.primary) S.time.on = false;
     S.dupRed = null;        /* 换了主索引，标红策略回到自动 */
+    S.splitRow = {};        /* 「拆不拆」是跟着主列的，换了就重算 */
+    S.grDims = {}; S.subSel = {};
+    saveCfg();
     renderStat(); return;
+  }
+  /* 结果页：给某一组加一个细分列 */
+  if (e.target.dataset && e.target.dataset.subAdd !== undefined){
+    var ga = (S.last && S.last.groups) ? S.last.groups[+e.target.dataset.subAdd] : null;
+    if (ga && e.target.value){
+      var parts = e.target.value.split('\u0001');
+      var dd = parts.length > 1 ? { col:parts[0], grain:parts[1] } : { col:parts[0] };
+      var dk = subKey(dd);
+      S.grDims[ga.key] = S.grDims[ga.key] || [];
+      if (S.grDims[ga.key].length < 3 &&
+          !S.grDims[ga.key].some(function (x){ return subKey(x) === dk; })){
+        S.grDims[ga.key].push(dd);
+      }
+      if (S.subSel[ga.key]) delete S.subSel[ga.key][dk];
+      renderResult();
+    } else if (ga) renderResult();
+    return;
   }
   if (e.target.id === 'aggCol'){ fillAggKind(); return; }
   if (e.target.id === 'dupRedOn'){ S.dupRed = e.target.checked; renderResult(); return; }
   if (e.target.id === 'timeOn'){ S.time.on = e.target.checked; renderStat(); return; }
   if (e.target.id === 'timeCol'){ S.time.col = e.target.value; renderStat(); return; }
-  if (e.target.id === 'splitMulti'){ S.splitMulti = e.target.checked; renderStat(); return; }
+  if (e.target.id === 'splitMulti'){
+    S.splitMulti = e.target.checked;
+    S.splitRow = {};            /* 改了默认值，逐条的覆盖全部清掉，回到统一口径 */
+    saveCfg();
+    renderStat(); renderCheckIfOpen(); return;
+  }
   var el = e.target.closest('[data-c-col]');
   if (el){ var c = S.conds[+el.dataset.cCol]; c.col = el.value; c.val = ''; c.val2 = ''; renderStat(); return; }
   el = e.target.closest('[data-c-op]');
@@ -3848,11 +4223,7 @@ on('#addAgg', function (){
   if (!already) S.aggs.push({ col: col, agg: kind });
   renderStat();
 });
-$('#toggleAll').onclick = function (){
-  var all = RULES.reduce(function (a, s){ return a.concat(s.items.map(function (i){ return i.n; })); }, []);
-  S.rulesOn = (S.rulesOn.length === all.length) ? [] : all.slice();
-  renderRules();
-};
+/* 校验页的按钮（页签里的内容由 renderCheck 重建，这里只绑不在的） */
 
 /* ==========================================================================
    读 xlsx —— ZIP 中央目录 + DecompressionStream('deflate-raw') + 正则扫 XML
@@ -4415,7 +4786,7 @@ function buildTemplates(){
     /* 简化模式：模板就是「一套完整的开局」—— 主列 + 要看哪些列 (+可选细分)。
        界面上不预填，但这不妨碍给一个一键开局。 */
     if (UI_SIMPLE){
-      var sc = defaultShowCols(s, d.primary);
+      var sc = defaultShowCols(s, d.primary).filter(function (c){ return c !== d.primary; });
       TPLS.push({ s:id, p:d.primary, sc:sc, sd:[], g:[], a:d.aggs, t:null, v:'table',
                   n:'按 ' + d.primary + ' 看', d:sc.length + ' 列' });
       if (d.timeCol){
@@ -4507,18 +4878,21 @@ async function openFile(file){
     SRC = {};
     var n = buildSrcFromSheets();
     if (!n) throw new Error('这些工作表里没有能用的数据表（都要至少 5 行、2 列）');
-    /* 必须先把 S.src 指到新表上，再 buildTemplates()。
+    /* 先把 S.src 指到新表上，再 buildTemplates()。
        链路：buildTemplates → defaultShowCols → colKind → isDateCol → SRC_OF()
        这时候 SRC 已经是新导入的表（s0、s1…），但 S.src 还指着上一份文件的
        id（master / plan）—— SRC_OF() 返回 undefined，读 .timeCols 直接抛错，
-       整个导入就废了。把 S.src 清空再 applyCfg，prevSrc 一定不等，重置也干净。 */
+       整个导入就废了。把 S.src 清空再 applyCfg，prevSrc 一定不等，重置也干净。
+
+       文件名和 fileLoaded 也必须**先**设 —— applyCfg 里会 restoreCfg()，
+       而「记住的填写」是按「文件 + 表名」存的；不先设就会拿示例的 key 去查。 */
     var first = S.tableOrder[0];
+    FILE_NAME = file.name;
+    S.fileLoaded = true;
     S.src = '';
     applyCfg({ src:first });
     buildTemplates();
-    FILE_NAME = file.name;
     setFileLabel();
-    S.fileLoaded = true;
     S.sheetFilter = '';
     renderTpl();
     renderStat();
@@ -4646,10 +5020,10 @@ function autoMerges(){
 }
 
 /* ---------- 启动 ---------- */
+bootFont();     /* 字号是全局偏好，一打开就生效，不用等导入文件 */
 renderSource();
 renderTpl();
 renderStat();
-renderRules();
 renderNav();
 setFileLabel();
 
