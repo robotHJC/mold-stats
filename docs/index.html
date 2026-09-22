@@ -477,6 +477,14 @@ window.addEventListener('error', function (ev) {
       <div class="answer" id="resAnswer"></div>
       <div class="kpis" id="resKpis"></div>
 
+      <div class="card" id="blankCard" hidden>
+        <div class="card-h">
+          <span class="step">?</span><span>有行没被算进去</span>
+          <span class="spacer"></span><span class="hint">空值不会静默跳过</span>
+        </div>
+        <div class="card-b" id="blankBox"></div>
+      </div>
+
       <div class="card" id="dupCard" hidden>
         <div class="card-h">
           <span class="step">!</span><span>主索引提醒</span>
@@ -830,18 +838,23 @@ function grainShort(key, grain){
    交叉表那几十处引用全都不用改。
    ========================================================================== */
 var AGGS = [
-  /* n = 下拉里的说法；sn = 拼进指标名里的短名（模具编号 · 条数） */
-  { k:'count', n:'计数（行数）', sn:'条数',   ok:['id','text','num','date'] },
-  { k:'uniq',  n:'去重计数',     sn:'去重数', ok:['id','text','num','date'] },
-  { k:'sum',   n:'求和',         sn:'合计',   ok:['num'] },
-  { k:'avg',   n:'平均',         sn:'平均',   ok:['num'] },
-  { k:'max',   n:'最大值',       sn:'最大',   ok:['num'] },
-  { k:'min',   n:'最小值',       sn:'最小',   ok:['num'] }
+  /* n = 下拉里的说法；sn = 拼进指标名里的短名（如 模具编号 · 有效数） */
+  { k:'rows',  n:'行数（整组，不看本列）', sn:'行数',   ok:['id','text','num','date'] },
+  { k:'count', n:'计数（本列有值的行）',   sn:'有效数', ok:['id','text','num','date'] },
+  { k:'uniq',  n:'去重计数',              sn:'去重数', ok:['id','text','num','date'] },
+  { k:'sum',   n:'求和',                  sn:'合计',   ok:['num'] },
+  { k:'avg',   n:'平均',                  sn:'平均',   ok:['num'] },
+  { k:'max',   n:'最大值',                sn:'最大',   ok:['num'] },
+  { k:'min',   n:'最小值',                sn:'最小',   ok:['num'] }
 ];
 var AGG_NAME = {};
 AGGS.forEach(function (a){ AGG_NAME[a.k] = a.sn; });
 
-function aggKey(col, agg){ return col + ' · ' + AGG_NAME[agg]; }
+/* 什么算「没填」：空串、null、undefined、全是空白 */
+function isBlank(v){ return v == null || String(v).trim() === ''; }
+
+/* 「行数」不依赖具体某一列，所以名字里不带列名 */
+function aggKey(col, agg){ return agg === 'rows' ? '行数' : col + ' · ' + AGG_NAME[agg]; }
 
 /* 这一列是编号、数字、日期、还是文字 —— 决定能给它配哪些算法。
    编号类单独分出来：对「订单编号」求和毫无意义，只会误导人。 */
@@ -866,8 +879,19 @@ function aggsForCol(col){
 
 function aggDef(col, agg){
   var f;
-  if (agg === 'count'){
+  if (agg === 'rows'){
+    /* 整组有多少行 —— 跟具体哪一列无关，空行也算 */
     f = function (b){ return b.length; };
+  } else if (agg === 'count'){
+    /* 只数「这一列真填了值」的行。
+       以前这里数的是整组行数，于是「模具编号 · 条数」和「行数」是同一个数，
+       而「去重数/合计」又默默跳过了空值 —— 两个数字对不上，差在哪没人知道。
+       现在分开：要整组行数就选「行数」。 */
+    f = function (b){
+      var n = 0;
+      b.forEach(function (r){ if (!isBlank(r[col])) n++; });
+      return n;
+    };
   } else if (agg === 'uniq'){
     f = function (b){
       return uniq(b.map(function (r){
@@ -876,13 +900,14 @@ function aggDef(col, agg){
       }).filter(Boolean)).length;
     };
   } else {
-    /* 求和 / 平均 / 最大 / 最小：先把不是数的剔掉。
-       绝不能拿空值当 0 去参与平均 —— 那会把工期摊薄。 */
+    /* 求和 / 平均 / 最大 / 最小：先把空的、不是数的剔掉。
+       绝不能拿空值当 0 去参与平均 —— 那会把工期摊薄。
+       剔掉了多少行，blankReport() 会如实报出来。 */
     var nums = function (b){
       var out = [];
       b.forEach(function (r){
         var v = r[col];
-        if (v === '' || v == null) return;
+        if (isBlank(v)) return;
         var n = Number(v);
         if (!isNaN(n)) out.push(n);
       });
@@ -900,7 +925,8 @@ function aggDef(col, agg){
     f: f,
     total: agg === 'avg' ? 'avg' : agg === 'max' ? 'max' : agg === 'min' ? 'min' : 'sum',
     fmt: null,
-    tip: '「' + col + '」的' + AGG_NAME[agg],
+    tip: agg === 'rows' ? '这一组有多少行 —— 不管本列填没填'
+                       : '「' + col + '」的' + AGG_NAME[agg],
     agg: agg, col: col
   };
 }
@@ -950,6 +976,60 @@ function dupOf(rows){
   });
   d.map = cnt;
   return d;
+}
+
+/* 每个统计项各自「跳过了多少行」。
+   统计最容易出错的地方就是空值被静默跳过 —— 数字少了，没人知道为什么。
+   这里把每一行都交代清楚：哪一列空、空在哪几个主索引上、
+   以及这些行在**别的**统计项里到底有没有被算进去。 */
+function blankReport(rows){
+  var rep = [];
+  if (!rows.length || !S.aggs.length) return rep;
+  var numeric = { sum:1, avg:1, max:1, min:1 };
+  var gOf = function (r){
+    if (!S.primary) return '(整表)';
+    return isBlank(r[S.primary]) ? '—' : String(r[S.primary]);
+  };
+
+  S.aggs.forEach(function (a, i){
+    if (a.agg === 'rows') return;              /* 行数不看列，不存在跳过 */
+    var blank = 0, nonNum = 0, byGroup = {}, others = {};
+    S.aggs.forEach(function (b, j){
+      if (j !== i && b.agg !== 'rows') others[j] = { col: b.col, n: 0 };
+    });
+
+    rows.forEach(function (r){
+      var v = r[a.col];
+      if (isBlank(v)){
+        blank++;
+        var g = gOf(r);
+        byGroup[g] = (byGroup[g] || 0) + 1;
+        /* 本列虽然空，但这一行在别的统计项那一列有没有值？有就说明它没被遗漏 */
+        for (var j in others){
+          if (!isBlank(r[others[j].col])) others[j].n++;
+        }
+        return;
+      }
+      if (numeric[a.agg] && isNaN(Number(v))){
+        nonNum++;
+        var g2 = gOf(r);
+        byGroup[g2] = (byGroup[g2] || 0) + 1;
+      }
+    });
+
+    if (!blank && !nonNum) return;
+    var gs = Object.keys(byGroup).sort(function (x, y){ return byGroup[y] - byGroup[x]; });
+    rep.push({
+      metric: aggKey(a.col, a.agg), col: a.col, agg: a.agg,
+      blank: blank, nonNum: nonNum,
+      groups: gs.slice(0, 8), groupN: gs.length, byGroup: byGroup,
+      covered: Object.keys(others).map(function (j){
+        var b = S.aggs[j];
+        return { metric: aggKey(b.col, b.agg), col: b.col, n: others[j].n };
+      }).filter(function (o){ return o.n > 0; })
+    });
+  });
+  return rep;
 }
 
 var DEMO_METRIC_DEF = {
@@ -1287,7 +1367,8 @@ function fillAggKind(){
   if (hint && col){
     var k = colKind(col);
     hint.innerHTML = '「' + esc(col) + '」是' + ({ id:'编号', text:'文字', num:'数字', date:'日期' }[k]) +
-      '列，可以：' + list.map(function (a){ return a.n; }).join(' / ') + '。';
+      '列，可以：' + list.map(function (a){ return a.n; }).join(' / ') +
+      '。<br><b>计数</b>只数这一列真填了值的行；想连空行一起数就选<b>行数</b>。';
   }
 }
 
@@ -1579,6 +1660,42 @@ function renderDupCard(dup, total, redOn, dupRows){
     '</div>';
 }
 
+/* 空值被跳过了多少 —— 必须说清楚，不能默默少算 */
+function renderBlankCard(rep){
+  var card = $('#blankCard'), box = $('#blankBox');
+  if (!card || !box) return;
+  if (!rep || !rep.length){ card.hidden = true; box.innerHTML = ''; return; }
+  card.hidden = false;
+  box.innerHTML = rep.map(function (r){
+    var total = r.blank + r.nonNum, why = [];
+    if (r.blank) why.push('<b>' + r.blank + '</b> 行在「' + esc(r.col) + '」这一列是<b>空的</b>');
+    if (r.nonNum) why.push('<b>' + r.nonNum + '</b> 行填的不是数字（算不了' + esc(AGG_NAME[r.agg]) + '）');
+    var h = '<div style="margin-bottom:16px">' +
+      '<div><b>' + esc(r.metric) + '</b>：' + why.join('，') +
+      ' —— 这 <b>' + total + '</b> 行<b>没被算进去</b>。</div>';
+    if (r.covered.length){
+      h += '<div class="sub" style="margin-top:6px">但这些行在你选的别的统计项里<b>是有值的</b>，那边照常算：' +
+        r.covered.map(function (c){ return '「' + esc(c.metric) + '」<b>' + c.n + '</b> 行'; }).join('，') + '。</div>';
+    } else if (S.aggs.length > 1){
+      h += '<div class="sub" style="margin-top:6px">你选的另外几个统计项在这些行上也是空的 —— ' +
+        '那几行可能整条都没填完整。</div>';
+    }
+    if (r.groups.length){
+      h += '<div class="sub" style="margin-top:6px">集中在这些「' + esc(S.primary || '记录') + '」上：' +
+        r.groups.map(function (g){ return '<b>' + esc(g) + '</b>（' + r.byGroup[g] + '）'; }).join('、') +
+        (r.groupN > r.groups.length ? ' …共 ' + r.groupN + ' 个' : '') + '。</div>';
+    }
+    return h + '</div>';
+  }).join('') +
+  '<div class="sub" style="border-top:1px solid var(--line2);padding-top:11px;line-height:1.8">' +
+    '规则：<b>计数 / 去重数 / 合计 / 平均</b> 都只吃它自己那一列的值，<b>空值不参与</b> —— ' +
+    '这是 SQL 里 <span class="mono">COUNT(列) / SUM(列) / AVG(列)</span> 的标准做法。' +
+    '要连空行一起数，用<b>「行数」</b>那个统计项（它不看本列）。' +
+    '<br>如果这些行确实该计入，就得回原始表把空格补上 —— ' +
+    '<b>统计工具不该替你猜哪格是漏填。</b>' +
+  '</div>';
+}
+
 function renderResult(){
   var r = compute();
   var out = r.out, rows = r.rows, src = r.src, dm = r.dm;
@@ -1599,6 +1716,11 @@ function renderResult(){
   $('#resSub').textContent = src.name + ' · 主索引【' + (S.primary || '不设') + '】 · 分组【' +
     (gname || '整表') + '】 · ' + condTxt + ' · 命中 ' + rows.length + ' 条';
   renderDetail(rows);
+
+  /* 空值被跳过了多少行 —— 逐项交代 */
+  var blanks = blankReport(rows);
+  S.last.blanks = blanks;
+  renderBlankCard(blanks);
   if (!S.metrics.length || !out.length){
     $('#resAnswer').innerHTML = !S.metrics.length
       ? '<div class="t">还没法算</div>回到「做统计」，第 3 步里<b>至少加一个统计项</b>（选一列 + 选怎么算）。'
@@ -1774,6 +1896,9 @@ function renderResult(){
     '\n<b>主</b> ' + esc(S.primary || '（不设 —— 整表汇总）') +
     '\n<b>分</b> ' + esc(gname || '（整表）') +
     '\n<b>算</b> ' + (S.metrics.map(esc).join(', ') || '（还没选统计项）') +
+    '\n<b>空</b> ' + (blanks.length
+        ? blanks.map(function (b){ return esc(b.metric) + ' 跳过 ' + (b.blank + b.nonNum) + ' 行'; }).join('；')
+        : '没有空值被跳过') +
     '\n<b>筛</b> ' + esc(condTxt) +
     '\n<b>出</b> ' + out.length + ' 行';
 
@@ -1979,11 +2104,20 @@ function metaLines(){
   var L = S.last, d = new Date();
   return [
     '数据源：' + FILE_NAME + ' → ' + SRC_OF().name + '（命中 ' + L.rows.length + ' 行）',
-    '统计口径：按【' + dimsLabel() + '】分组' +
-      (S.time.on ? '；时间轴 = ' + S.time.col + '（' + GRAIN_NAME[S.time.grain] + '）' : '；未启用时间维度'),
-    '统计指标：' + S.metrics.map(headerWithUnit).join('、'),
+    '主索引：' + (S.primary || '不设（整表汇总）'),
+    '分组维度：' + (dimsLabel() || '整表') +
+      (S.time.on ? '（时间轴 = ' + S.time.col + ' · ' + GRAIN_NAME[S.time.grain] + '）' : ''),
+    '统计项：' + S.metrics.map(headerWithUnit).join('、'),
     '筛选条件：' + condText(),
     '一格多人：' + (S.splitMulti ? '拆开各算一次' : '只算第一个'),
+    /* 空值被跳过多少行，必须写进导出里 —— 图片和 Excel 是要发给别人的，
+       只在屏幕上说没用。少算了多少，看的人有权知道。 */
+    '空值提醒：' + ((L.blanks && L.blanks.length)
+      ? L.blanks.map(function (b){
+          return b.metric + ' 跳过 ' + (b.blank + b.nonNum) + ' 行' +
+                 '（空 ' + b.blank + (b.nonNum ? '，非数字 ' + b.nonNum : '') + '）';
+        }).join('；')
+      : '没有行因空值被跳过'),
     S.drill ? '明细范围：只看 ' + S.drill.dim + ' = ' + S.drill.val : '明细范围：全部',
     '导出时间：' + ymd(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes())
   ];
@@ -2573,7 +2707,9 @@ $('#addAgg').onclick = function (){
   var colEl = $('#aggCol'), kindEl = $('#aggKind');
   if (!colEl || !kindEl || !colEl.value) return;
   var col = colEl.value, kind = kindEl.value;
-  var already = S.aggs.some(function (a){ return a.col === col && a.agg === kind; });
+  /* 按指标名去重 ——「行数」跟列无关，用 col 比会重复加进去 */
+  var key = aggKey(col, kind);
+  var already = S.aggs.some(function (a){ return aggKey(a.col, a.agg) === key; });
   if (!already) S.aggs.push({ col: col, agg: kind });
   renderStat();
 };
@@ -3029,48 +3165,58 @@ function pickDetailCols(t){
   return keys.concat(t.derived.map(function (d){ return d.k; })).concat(times).concat(others).slice(0, 12);
 }
 function defaultsFor(t){
-  var cols = t.cols, times = t.timeCols, n = t.rows.length;
+  var cols = t.cols, times = t.timeCols, n = Math.max(1, t.rows.length);
+  var autoName = /^第\d+列$/;
 
-  /* 主索引：挑最像「一条记录一个值」的那一列 ——
-     模具编号、订单编号、序号这种。挑错也不怕，用户自己在下拉里改。 */
-  var primary = '', bestScore = -Infinity;
+  /* 候选列 = 真实列 + 派生列（延期(天)/工期(天)）。
+     每列顺手算**填充率** —— 一列如果九成是空的，拿它当默认值只会误导人。
+     真实文件里「设计延期」1424 行只有 87 行有值，拿它求和就是在骗人。 */
+  var cand = [], seen = {};
   cols.forEach(function (c){
-    if (/^第\d+列$/.test(c.name)) return;
-    var r = c.distinct / Math.max(1, n), score = 5;
-    if (r > 0.98)      score = 120;      /* 几乎唯一，就是主键 */
+    if (autoName.test(c.name) || seen[c.name]) return;
+    seen[c.name] = 1;
+    cand.push({ name: c.name, cat: c.cat, distinct: c.distinct, fill: c.vals.length / n });
+  });
+  t.derived.forEach(function (d){
+    if (seen[d.k]) return;
+    seen[d.k] = 1;
+    var nn = 0;
+    for (var i = 0; i < t.rows.length; i++) if (!isBlank(t.rows[i][d.k])) nn++;
+    /* distinct 给个小值：派生列是数字，本来也不该去抢主索引 */
+    cand.push({ name: d.k, cat: 'num', distinct: 2, fill: nn / n });
+  });
+
+  /* 主索引：既要「一条记录一个值」，也要填得满 */
+  var primary = '', bestScore = -Infinity;
+  cand.forEach(function (c){
+    if (/序号|^号$/.test(c.name)) return;      /* 行号不是主键 */
+    if (c.fill < 0.5) return;                  /* 一半以上是空的，当不了主索引 */
+    var r = c.distinct / n, score = 5;
+    if (r > 0.98)      score = 120;            /* 几乎唯一，就是主键 */
     else if (r > 0.9)  score = 90;
     else if (r > 0.5)  score = 50;
     else if (r > 0.1)  score = 25;
     if (/编号|编码|单号/.test(c.name)) score += 40;
-    /* 「序号」就是行号，当主索引等于什么都没分。除非这张表实在没别的可选，
-       否则别让它抢过模具编号。 */
-    if (/序号|^号$/.test(c.name)) score -= 60;
     if (/人|设计|负责/.test(c.name)) score += 15;
-    if (c.cat === 'num' && !/编号|编码|单号|序号/.test(c.name)) score -= 25;
+    if (c.cat === 'num' && !/编号|编码|单号/.test(c.name)) score -= 25;
     if (score > bestScore){ bestScore = score; primary = c.name; }
   });
+  if (!primary){
+    var fb = cand.filter(function (c){ return c.fill >= 0.5; })[0];
+    primary = fb ? fb.name : '';
+  }
 
-  /* 统计项：主索引看条数，再挑一个「真的能加」的数字列求和 ——
-     列名里带 数/量/套/率/延期/工期 的才建议合计；对「工序」这种
-     序号类数字列求和毫无意义，宁可默认不给。 */
-  var aggs = [], used = {};
-  var add = function (col, agg){
-    var k = col + '|' + agg;
-    if (!col || used[k] || aggs.length >= 3) return;
-    used[k] = 1; aggs.push({ col: col, agg: agg });
-  };
-  if (primary) add(primary, 'count');
-  var numCols = cols.filter(function (c){
-    return c.cat === 'num' && !/编号|编码|单号|序号|^第\d+列$/.test(c.name);
-  });
-  var addable = numCols.filter(function (c){
-    return /数|量|套|个|件|金额|费|价|重|长|宽|高|率|延期|工期|天数/.test(c.name);
-  });
-  /* 名字看不出能不能加，就**不给**默认合计。
-     宁可默认少一个统计项（用户自己在下拉里加），也不要出现
-     「备注·合计」「图纸下发·合计」这种看不懂的数字。 */
-  addable.slice(0, 1).forEach(function (c){ add(c.name, 'sum'); });
-  if (!aggs.length && cols.length) add(cols[0].name, 'count');
+  /* 统计项：主索引的有效数 + 一个「填得满、名字像是能加的量」的合计。
+     名字看不出能不能加，就**不给**默认合计 —— 宁可少一个（用户自己加），
+     也不要出现「备注·合计」「图纸下发·合计」这种看不懂的数字。 */
+  var aggs = [];
+  if (primary) aggs.push({ col: primary, agg: 'count' });
+  var addable = cand.filter(function (c){
+    return c.cat === 'num' && c.fill >= 0.5 &&
+           /数|量|套|个|件|金额|费|价|重|长|宽|高|率|延期|工期|天数/.test(c.name);
+  }).sort(function (a, b){ return b.fill - a.fill; })[0];
+  if (addable) aggs.push({ col: addable.name, agg: 'sum' });
+  if (!aggs.length && cand.length) aggs.push({ col: cand[0].name, agg: 'rows' });
 
   /* 时间轴：优先「完工/完成/交模/送样」，其次「计划/截止」，避开主索引那一列 */
   var tnames = times.map(function (x){ return x.k; }).filter(function (k){ return k !== primary; });
