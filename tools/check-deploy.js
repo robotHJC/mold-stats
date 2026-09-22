@@ -71,6 +71,7 @@ function gh(args) {
       ['读 Excel 的代码在', html.includes('deflate-raw')],
       ['sheet 选择器在', html.includes('选择数据表')],
       ['导出图片在', html.includes('exportPng')],
+      ['内置浏览器选文件的提示在', html.includes('wxwarn')],
     ];
     checks.forEach(([label, v]) => {
       if (!v) return console.log('  ✗ ' + label);
