@@ -72,6 +72,8 @@ function gh(args) {
       ['sheet 选择器在', html.includes('选择数据表')],
       ['导出图片在', html.includes('exportPng')],
       ['内置浏览器选文件的提示在', html.includes('wxwarn')],
+      ['主索引下拉在', html.includes('primarySel')],
+      ['统计项构造器在', html.includes('addAgg')],
     ];
     checks.forEach(([label, v]) => {
       if (!v) return console.log('  ✗ ' + label);

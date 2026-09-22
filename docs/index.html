@@ -231,6 +231,13 @@ table.rt tbody tr:hover{background:#f7f9fc}
 table.rt tbody tr.bad td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 table.rt tbody tr.warn td:first-child{box-shadow:inset 3px 0 0 #e0a52c}
 table.rt tfoot td{background:#f3f6fa;font-weight:700}
+/* 主索引重复的行 —— 不是错误，是要人确认 */
+table.rt tbody tr.dup{background:#fdeceb}
+table.rt tbody tr.dup:hover{background:#fbdfdd}
+table.rt tbody tr.dup td:first-child{box-shadow:inset 3px 0 0 var(--bad);font-weight:700;color:var(--bad)}
+.dupbadge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:5px;background:var(--bad);color:#fff;font-size:10.5px;font-weight:700;font-family:var(--mono);vertical-align:1px}
+.dupbadge.soft{background:#e7edf5;color:#5b6b7d}
+.chip.dup{background:#fdeceb;border-color:#f2c3bf;color:#8c2f27}
 
 .bars{padding:14px 15px}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
@@ -341,7 +348,9 @@ table.rt td.drill.on::after{content:' ▾'}
   table.rt td.drill.on{background:#eef3fa !important;color:#000}
   table.rt td.drill.on::after{content:''}
   tr.bad td:first-child,tr.warn td:first-child{box-shadow:none !important}
+  tr.dup td:first-child{box-shadow:none !important}
   tr.bad{background:#fdeceb !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tr.dup{background:#fdeceb !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   tr.warn{background:#fff8e8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:A4 landscape;margin:10mm}
 }
@@ -387,7 +396,8 @@ window.addEventListener('error', function (ev) {
     <!-- ══════════ ② 统计 ══════════ -->
     <section id="v-stat" hidden>
       <div class="page-title">做统计</div>
-      <div class="page-sub">默认就是「<b>每月每人装配量</b>」。想换口径，自己改时间粒度、分组列、指标就行。</div>
+      <div class="page-sub">先<b>选一张表</b>，再选<b>主索引</b>（以哪一列为主）和<b>统计项</b>（选一列 + 选怎么算）。' +
+        '下面所有可选项都是那张表里真实存在的列。</div>
 
       <div class="tpl-scroll" id="tplList"></div>
 
@@ -404,18 +414,22 @@ window.addEventListener('error', function (ev) {
 
       <div class="card">
         <div class="card-h">
-          <span class="step">2</span><span>按什么分组</span>
-          <span class="spacer"></span><span class="hint">时间 × 人／客户／班组</span>
+          <span class="step">2</span><span>以什么为主</span>
+          <span class="spacer"></span><span class="hint">主索引 = 结果表的第一列</span>
         </div>
         <div class="card-b">
-          <div class="picked" id="groupPicked"></div>
-          <div class="field" style="margin-top:12px">
-            <div class="field-label">时间维度 <span class="tag info">按天 ／ 周 ／ 月 ／ 季度 ／ 年</span></div>
+          <div class="field">
+            <div class="field-label">主索引 <span class="tag info">以哪一条为主统计</span></div>
+            <div id="primaryBox"></div>
+          </div>
+          <div class="field">
+            <div class="field-label">再按时间分 <span class="tag info">按天 ／ 周 ／ 月 ／ 季度 ／ 年</span></div>
             <div id="timeBox"></div>
           </div>
           <div class="field">
-            <div class="field-label">其他分组列 <span class="tag gray">只列取值重复度高的</span></div>
-            <div class="chips" id="groupPool"></div>
+            <div class="field-label">附加分组 <span class="tag gray">在主索引之后再细分，可不选</span></div>
+            <div class="picked" id="groupPicked"></div>
+            <div class="chips" id="groupPool" style="margin-top:9px"></div>
             <div id="splitBox" style="margin-top:12px"></div>
           </div>
         </div>
@@ -423,14 +437,19 @@ window.addEventListener('error', function (ev) {
 
       <div class="card">
         <div class="card-h">
-          <span class="step">3</span><span>算什么指标</span>
-          <span class="spacer"></span><span class="hint">已按列类型推荐</span>
+          <span class="step">3</span><span>算什么统计项</span>
+          <span class="spacer"></span><span class="hint">选一列 + 选怎么算</span>
         </div>
         <div class="card-b">
           <div class="picked" id="metricPicked"></div>
           <div class="field" style="margin-top:12px">
-            <div class="field-label">可加指标</div>
-            <div class="chips" id="metricPool"></div>
+            <div class="field-label">加一个统计项</div>
+            <div class="opt-row">
+              <select id="aggCol"></select>
+              <select id="aggKind"></select>
+              <button class="btn sm" id="addAgg">+ 添加</button>
+            </div>
+            <div class="sub" style="margin-top:8px" id="aggHint"></div>
           </div>
         </div>
       </div>
@@ -446,22 +465,6 @@ window.addEventListener('error', function (ev) {
         </div>
       </div>
 
-      <div class="card" id="linkCard">
-        <div class="card-h"><span class="step">5</span><span>和另一张表联动</span><span class="spacer"></span><span class="hint">可选，但很有用</span></div>
-        <div class="card-b">
-          <div class="link-box">
-            <div class="hd">
-              <span class="tag info" id="linkState">已开启</span>
-              <span id="linkTitle"></span>
-              <span style="flex:1"></span>
-              <button class="btn sm" id="toggleLink">关闭</button>
-            </div>
-            <div class="sub" id="linkWhy" style="margin-bottom:9px"></div>
-            <div class="link-sql" id="linkSql"></div>
-          </div>
-        </div>
-      </div>
-
       <div class="go-wrap"><button class="btn pri block sticky-go" id="runStat">开始统计</button></div>
     </section>
 
@@ -473,6 +476,14 @@ window.addEventListener('error', function (ev) {
 
       <div class="answer" id="resAnswer"></div>
       <div class="kpis" id="resKpis"></div>
+
+      <div class="card" id="dupCard" hidden>
+        <div class="card-h">
+          <span class="step">!</span><span>主索引提醒</span>
+          <span class="spacer"></span><span class="hint">需要你确认</span>
+        </div>
+        <div class="card-b" id="dupBox"></div>
+      </div>
 
       <div class="segmented" id="resView">
         <button data-rv="table" class="on">明细表</button>
@@ -722,7 +733,9 @@ var SRC = {
       { k:'实际交模日期', t:'实交', why:'看这个月<b>实际交模</b>多少 —— 最常用' }
     ],
     metrics:['订单数','模具套数','交模套数','平均延期天数','准交率','最长延期','未交模订单','平均交货周期'],
-    defaults:{ group:['客户名称'], metrics:['订单数','模具套数','平均延期天数','准交率'], time:null }
+    defaults:{ primary:'订单编号',
+               aggs:[{ col:'订单编号', agg:'count' }, { col:'模具套数', agg:'sum' }],
+               group:[], time:null, timeCol:'实际交模日期' }
   },
   plan:{
     id:'plan', name:'生产计划表', kind:'工序级', rows:PLAN_ROWS, total:1426,
@@ -748,8 +761,9 @@ var SRC = {
     ],
     metrics:['装配套数','装配数量','平均装配工期','装配延期','按时完工率','最长装配延期',
              '送样完成数','工序数','装配完成率','图纸及时率','设计延期合计','送样合格率'],
-    defaults:{ group:['装配人'], metrics:['装配套数','装配数量','按时完工率'],
-               time:{ col:'装配完成时间', grain:'month' } }
+    defaults:{ primary:'模具编号',
+               aggs:[{ col:'模具编号', agg:'count' }, { col:'设计延期', agg:'sum' }],
+               group:[], time:null, timeCol:'装配完成时间' }
   }
 };
 
@@ -808,6 +822,136 @@ function grainShort(key, grain){
   return key;
 }
 
+/* ==========================================================================
+   统计项 = 选一列 + 选算法
+   指标不再写死。用户挑一列、挑一种算法，就现场生成一个指标 —— 这样
+   任何一列都能拿来统计（包括原来根本没有指标的列）。
+   生成出来的指标名照样注册进 METRIC_DEF，于是 compute / 导出 / KPI /
+   交叉表那几十处引用全都不用改。
+   ========================================================================== */
+var AGGS = [
+  /* n = 下拉里的说法；sn = 拼进指标名里的短名（模具编号 · 条数） */
+  { k:'count', n:'计数（行数）', sn:'条数',   ok:['id','text','num','date'] },
+  { k:'uniq',  n:'去重计数',     sn:'去重数', ok:['id','text','num','date'] },
+  { k:'sum',   n:'求和',         sn:'合计',   ok:['num'] },
+  { k:'avg',   n:'平均',         sn:'平均',   ok:['num'] },
+  { k:'max',   n:'最大值',       sn:'最大',   ok:['num'] },
+  { k:'min',   n:'最小值',       sn:'最小',   ok:['num'] }
+];
+var AGG_NAME = {};
+AGGS.forEach(function (a){ AGG_NAME[a.k] = a.sn; });
+
+function aggKey(col, agg){ return col + ' · ' + AGG_NAME[agg]; }
+
+/* 这一列是编号、数字、日期、还是文字 —— 决定能给它配哪些算法。
+   编号类单独分出来：对「订单编号」求和毫无意义，只会误导人。 */
+function colKind(col){
+  if (/编号|编码|单号|序号|^号$/.test(col)) return 'id';
+  var src = SRC_OF();
+  if ((src.timeCols || []).some(function (c){ return c.k === col; })) return 'date';
+  var vals = [], rows = src.rows || [];
+  for (var i = 0; i < rows.length && vals.length < 200; i++){
+    var v = rows[i][col];
+    if (v !== '' && v != null) vals.push(v);
+  }
+  if (!vals.length) return 'text';
+  var num = 0;
+  vals.forEach(function (v){ if (!isNaN(Number(v))) num++; });
+  return num > vals.length * 0.8 ? 'num' : 'text';
+}
+function aggsForCol(col){
+  var k = colKind(col);
+  return AGGS.filter(function (a){ return a.ok.indexOf(k) >= 0; });
+}
+
+function aggDef(col, agg){
+  var f;
+  if (agg === 'count'){
+    f = function (b){ return b.length; };
+  } else if (agg === 'uniq'){
+    f = function (b){
+      return uniq(b.map(function (r){
+        var v = r[col];
+        return v == null ? '' : String(v).trim();
+      }).filter(Boolean)).length;
+    };
+  } else {
+    /* 求和 / 平均 / 最大 / 最小：先把不是数的剔掉。
+       绝不能拿空值当 0 去参与平均 —— 那会把工期摊薄。 */
+    var nums = function (b){
+      var out = [];
+      b.forEach(function (r){
+        var v = r[col];
+        if (v === '' || v == null) return;
+        var n = Number(v);
+        if (!isNaN(n)) out.push(n);
+      });
+      return out;
+    };
+    if (agg === 'sum') f = function (b){ return nums(b).reduce(function (a, x){ return a + x; }, 0); };
+    if (agg === 'avg') f = function (b){
+      var v = nums(b);
+      return v.length ? +(v.reduce(function (a, x){ return a + x; }, 0) / v.length).toFixed(1) : 0;
+    };
+    if (agg === 'max') f = function (b){ var v = nums(b); return v.length ? Math.max.apply(null, v) : 0; };
+    if (agg === 'min') f = function (b){ var v = nums(b); return v.length ? Math.min.apply(null, v) : 0; };
+  }
+  return {
+    f: f,
+    total: agg === 'avg' ? 'avg' : agg === 'max' ? 'max' : agg === 'min' ? 'min' : 'sum',
+    fmt: null,
+    tip: '「' + col + '」的' + AGG_NAME[agg],
+    agg: agg, col: col
+  };
+}
+
+/* 这张表到底有哪些列（给下拉用）—— 以数据行自己的键为准，
+   这样 buildDerived 写进去的「延期(天) / 工期(天)」也自动在里面。
+   没有表头的「第N列」（图片列、合并单元格的残留）不进下拉：
+   用户根本不知道那是什么，只会把选项搅乱、还会被挑去求和。 */
+function colsOf(){
+  var src = SRC_OF();
+  if (src.colOrderUI) return src.colOrderUI;
+  var all = src.colOrder;
+  if (!all || !all.length){
+    all = [];
+    var seen = {}, rows = src.rows || [];
+    for (var i = 0; i < rows.length && i < 50; i++){
+      for (var k in rows[i]){
+        if (Object.prototype.hasOwnProperty.call(rows[i], k) && !seen[k]){ seen[k] = 1; all.push(k); }
+      }
+    }
+    src.colOrder = all;
+  }
+  src.colOrderUI = all.filter(function (c){ return !/^第\d+列$/.test(c); });
+  return src.colOrderUI;
+}
+
+/* 主索引在某一段数据里重复的情况 —— 重复就得提醒人确认。
+   注意：这里只负责统计出「哪些值重复了几次」；
+   「要不要逐行铺底色」是 renderResult 决定的，因为那要看重复行占总行数的比例。 */
+function dupOf(rows){
+  var d = { values:0, rows:0, max:0, map:{}, distinct:0 };
+  if (!S.primary) return d;
+  var cnt = {};
+  rows.forEach(function (r){
+    var v = r[S.primary];
+    v = (v == null || v === '') ? '—' : String(v);
+    cnt[v] = (cnt[v] || 0) + 1;
+  });
+  var keys = Object.keys(cnt);
+  d.distinct = keys.length;
+  keys.forEach(function (v){
+    if (cnt[v] > 1){
+      d.values++;
+      d.rows += cnt[v];
+      if (cnt[v] > d.max) d.max = cnt[v];
+    }
+  });
+  d.map = cnt;
+  return d;
+}
+
 var DEMO_METRIC_DEF = {
   /* —— 总计划表 —— */
   '订单数':      { f:function (b){ return uniq(b.map(function (r){ return r.订单编号; })).length; }, total:'sum', fmt:null, tip:'按订单编号去重' },
@@ -842,6 +986,11 @@ function useMetrics(){
   var defs = (src && src.metricDefs) || DEMO_METRIC_DEF;
   Object.keys(METRIC_DEF).forEach(function (k){ delete METRIC_DEF[k]; });
   Object.keys(defs).forEach(function (k){ METRIC_DEF[k] = defs[k]; });
+  /* 用户挑的「列 × 算法」现场注册进来。
+     S.metrics 完全由 S.aggs 推导，两边不会跑偏。 */
+  var agg = (S.aggs || []).filter(function (a){ return a && a.col && AGG_NAME[a.agg]; });
+  agg.forEach(function (a){ METRIC_DEF[aggKey(a.col, a.agg)] = aggDef(a.col, a.agg); });
+  S.metrics = agg.map(function (a){ return aggKey(a.col, a.agg); });
 }
 SRC.master.metricDefs = SRC.plan.metricDefs = DEMO_METRIC_DEF;
 SRC.master.detailCols = ['订单编号','模具编号','客户名称','零件名称','模具套数','设计','生产班组','接单日期','计划交模日期','实际交模日期'];
@@ -850,20 +999,23 @@ SRC.master.keyCols = ['订单编号','模具编号'];
 SRC.plan.keyCols = ['模具编号','订单编号'];
 SRC.master.colCount = 24;
 SRC.plan.colCount = 37;
+
+/* 演示表也要有列清单 —— 以数据行自己的键为准，顺序就是行对象里的顺序。
+   上传的表在 buildSrcFromSheets 里直接按表头顺序给 colOrder。 */
+[SRC.master, SRC.plan].forEach(function (s){
+  var seen = {}, out = [];
+  s.rows.slice(0, 50).forEach(function (r){
+    for (var k in r){
+      if (Object.prototype.hasOwnProperty.call(r, k) && !seen[k]){ seen[k] = 1; out.push(k); }
+    }
+  });
+  s.colOrder = out;
+});
 SRC.master.headerRow = 2; SRC.master.markerRow = 3; SRC.master.hasHeader = true;
 SRC.plan.headerRow = 2;   SRC.plan.markerRow = 0;   SRC.plan.hasHeader = true;
 var DEMO_SRC = SRC;
 
-var LINK = {
-  master:{ to:'生产计划表', on:'订单编号', title:'生产计划表 · 按订单编号',
-    why:'把这道订单下所有工序捞出来，算出「这套模具做到哪一步了」，就能按完成进度排序。',
-    out:['工序总数','已完成工序','完成进度'],
-    sql:'<b>按</b> 订单编号 <b>关联</b> 生产计划表\n<b>带出</b> 工序总数, 已完成工序, 完成进度' },
-  plan:{ to:'总计划表', on:'订单编号', title:'总计划表 · 按订单编号',
-    why:'补上每道工序所属订单的 <b>计划交模日期</b> 和 <b>模具套数</b> —— 这样就能只看「已经过了交期还在做」的工序。',
-    out:['计划交模日期','模具套数','客户名称'],
-    sql:'<b>按</b> 订单编号 <b>关联</b> 总计划表\n<b>带出</b> 计划交模日期, 模具套数, 是否超期' }
-};
+/* 表间联动已取消 —— 每张表自己算自己的，不让用户猜「这张表和谁有关系」 */
 
 /* ---------- 一键模板 ---------- */
 var TPLS = [
@@ -953,12 +1105,15 @@ var S = {
   src:'plan',
   time:{ on:true, col:'装配完成时间', grain:'month' },
   splitMulti:true,
-  groupBy:['装配人'],
-  metrics:['装配套数','装配数量','按时完工率'],
+  primary:'装配人',                      /* 主索引：结果表的第一列，一行 = 一个装配人 */
+  groupBy:[],                            /* 附加分组：在主索引之后再细分 */
+  aggs:[{ col:'模具编号', agg:'uniq' },     /* 装配套数：一套模具多道工序只算一套 */
+        { col:'模具编号', agg:'count' }],   /* 工序条数 */
+  metrics:[],
   conds:[{ col:'装配人', op:'=', val:'' },
          { col:'装配开始时间', op:'介于', val:'', val2:'' }],
   drill:null,
-  link:true,
+  dupRed:null,                           /* 重复的主索引行要不要铺底色：null=自动 */
   resView:'pivot',
   openGroups:['A'],
   tableOrder:['master','plan'],
@@ -1001,23 +1156,41 @@ function quickRange(kind){
   return ['', ''];
 }
 
-/* 当前生效的分组维度：时间维度排在最前 */
-function dims(){ return (S.time.on ? [DIM_TIME] : []).concat(S.groupBy); }
+/* 当前生效的分组维度：主索引 最前，然后是时间，然后是附加分组 */
+function dims(){
+  var d = [];
+  if (S.primary) d.push(S.primary);
+  if (S.time.on) d.push(DIM_TIME);
+  (S.groupBy || []).forEach(function (g){ if (d.indexOf(g) < 0) d.push(g); });
+  return d;
+}
 function dimName(d){ return d === DIM_TIME ? GRAIN_NAME[S.time.grain] : d; }
 function dimsLabel(){ return dims().map(dimName).join(' → '); }
 
-/* 统一的应用配置入口：模板 / 换表 / 换粒度都走这里 */
+/* 统一的应用配置入口：模板 / 换表 / 换主索引 / 换粒度都走这里 */
 function applyCfg(cfg){
   if (!SRC[cfg.src]) cfg.src = (S.tableOrder && S.tableOrder[0]) || 'master';
   S.src = cfg.src;
-  useMetrics();
-  var src = SRC[S.src], sd = src.defaults || { group:[], metrics:['条数'], time:null };
+  var src = SRC[S.src], sd = src.defaults || { group:[], aggs:[], time:null };
   var tc = src.timeCols || [];
-  S.groupBy = (cfg.group || sd.group || []).slice();
-  S.metrics = (cfg.metrics || sd.metrics || ['条数']).slice();
+
+  /* 主索引：以哪一列为主。'' = 不设，整表汇总 */
+  S.primary = ('primary' in cfg) ? (cfg.primary || '') : (sd.primary || '');
+
+  /* 附加分组：不能和主索引重名 */
+  S.groupBy = (cfg.group || sd.group || []).slice()
+                .filter(function (g){ return g && g !== S.primary; });
+
+  /* 统计项：列 × 算法 */
+  S.aggs = (cfg.aggs || sd.aggs || []).slice();
+  useMetrics();          /* 必须在 S.aggs 定下来之后 —— 它要据此重算 S.metrics */
+
+  /* 时间轴和主索引是同一列的话，再叠一层没意义，就不开了 */
   var t = ('time' in cfg) ? cfg.time : sd.time;
-  S.time = (t && tc.length) ? { on:true, col:t.col, grain:t.grain }
-                            : { on:false, col:tc.length ? tc[0].k : '', grain:'month' };
+  S.time = (t && tc.length && t.col !== S.primary)
+    ? { on:true, col:t.col, grain:t.grain }
+    : { on:false, col:(sd.timeCol || (tc[0] ? tc[0].k : '')), grain:'month' };
+
   S.resView = cfg.view || 'table';
   S.drill = null;
   S.conds = [];
@@ -1090,39 +1263,69 @@ function renderTpl(){
   }).join('');
 }
 
+/* 主索引选了之后，把这一列在整张表里重不重复说清楚 ——
+   重复不一定是错（一套模具挂多道工序本来就重复），但必须让人看见并确认。 */
+function primaryHint(src){
+  if (!S.primary) return '不设主索引 = 整张表汇总成一行。';
+  var d = dupOf(src.rows);
+  if (!d.values) return '✓ 「' + esc(S.primary) + '」每个值都唯一 —— 一行正好对一条记录。';
+  return '「' + esc(S.primary) + '」<b>不是唯一的</b> —— ' + d.distinct + ' 个值摊在 ' +
+    src.rows.length + ' 行上（最多的一个出现 ' + d.max + ' 次）。' +
+    '所以它是当<b>分组列</b>用的：一行 = 一个「' + esc(S.primary) + '」的汇总。';
+}
+
+/* 列换了之后，能配的算法跟着换 —— 日期列不能求和 */
+function fillAggKind(){
+  var colEl = $('#aggCol'), sel = $('#aggKind');
+  if (!colEl || !sel) return;
+  var col = colEl.value;
+  var list = aggsForCol(col);
+  sel.innerHTML = list.map(function (a){
+    return '<option value="' + a.k + '">' + a.n + '</option>';
+  }).join('');
+  var hint = $('#aggHint');
+  if (hint && col){
+    var k = colKind(col);
+    hint.innerHTML = '「' + esc(col) + '」是' + ({ id:'编号', text:'文字', num:'数字', date:'日期' }[k]) +
+      '列，可以：' + list.map(function (a){ return a.n; }).join(' / ') + '。';
+  }
+}
+
 function renderStat(){
   var src = SRC_OF();
   useMetrics();
+  var cols = colsOf();
 
-  /* 第 1 步：当前在统计哪张表 —— 要一眼看得到，并且能换 */
+  /* 第 1 步：当前在统计哪张表 —— 下拉选，随手能换 */
   $('#srcTog').innerHTML =
-    '<div class="curtable">' +
-      '<div class="ct-l"><div class="ct-n">' + esc(src.name) + '</div>' +
-        '<div class="ct-m">' + src.rows.length.toLocaleString() + ' 行 × ' + src.colCount + ' 列' +
-        (src.hasHeader === false ? ' · <span class="warn">未识别到表头</span>' : '') + '</div>' +
-      '</div>' +
-      '<div class="ct-r">' +
-        '<div class="ct-k"><b>' + src.dims.length + '</b> 列可分组 · ' +
-          '<b>' + src.timeCols.length + '</b> 个日期列 · ' +
-          '<b>' + src.metrics.length + '</b> 个指标</div>' +
-        '<button class="btn sm" data-nav="source">换一张表 →</button>' +
-      '</div>' +
+    '<div class="opt-row"><select id="srcSel">' +
+      (S.tableOrder || []).filter(function (id){ return !!SRC[id]; }).map(function (id){
+        return '<option value="' + esc(id) + '"' + (id === S.src ? ' selected' : '') + '>' +
+          esc(SRC[id].name) + '（' + SRC[id].rows.length.toLocaleString() + ' 行）</option>';
+      }).join('') +
+    '</select></div>' +
+    '<div class="sub" style="margin-top:9px">' +
+      '<b>' + esc(src.name) + '</b> · ' + src.rows.length.toLocaleString() + ' 行 · ' +
+      cols.length + ' 列' +
+      (src.hasHeader === false ? ' · <span class="warn">未识别到表头</span>' : '') +
     '</div>';
-  $('#srcNote').innerHTML = src.timeCols.length
-    ? '下面所有可选项，都是《' + esc(src.name) + '》里<b>真实存在</b>的列。换表之后会全部跟着换。'
-    : '这张表<b>没有日期列</b>，所以时间维度用不了，只能按上下的列分组统计。';
+  $('#srcNote').innerHTML = '下面所有可选项都是《' + esc(src.name) + '》里<b>真实存在</b>的列 —— ' +
+    '换张表会全部跟着换。每张表自己算自己的。';
 
-  var lk = LINK[S.src];
-  var lc = $('#linkCard');
-  if (lc) lc.hidden = !lk;
-  if (lk){
-    $('#linkTitle').textContent = lk.title;
-    $('#linkWhy').innerHTML = lk.why;
-    $('#linkSql').innerHTML = lk.sql;
-    $('#toggleLink').textContent = S.link ? '关闭' : '打开';
-    $('#linkState').textContent = S.link ? '已开启' : '已关闭';
-    $('#linkState').className = 'tag ' + (S.link ? 'info' : 'gray');
-  }
+  /* 第 2 步 a：主索引 —— 随便哪一列都能当主 */
+  var KIND_LABEL = { id:'编号', text:'文字', num:'数字', date:'日期' };
+  var kindOf = {};
+  cols.forEach(function (c){ kindOf[c] = colKind(c); });
+
+  $('#primaryBox').innerHTML =
+    '<div class="opt-row"><select id="primarySel">' +
+      '<option value=""' + (S.primary ? '' : ' selected') + '>（不设，整张表汇总成一行）</option>' +
+      cols.map(function (c){
+        return '<option value="' + esc(c) + '"' + (c === S.primary ? ' selected' : '') + '>' +
+          esc(c) + '（' + KIND_LABEL[kindOf[c]] + '）</option>';
+      }).join('') +
+    '</select></div>' +
+    '<div class="sub" style="margin-top:8px" id="primaryHint">' + primaryHint(src) + '</div>';
 
   /* 分组：时间维度独立一个开关，其余列从池子里加 */
   var gp = '';
@@ -1135,8 +1338,9 @@ function renderStat(){
     return '<span class="chip sel" data-del-group="' + esc(g) + '"><span>' + esc(g) +
       '</span><span class="x">×</span></span>';
   }).join('');
-  $('#groupPicked').innerHTML = gp || '<span class="sub">还没选 —— 至少选一列</span>';
-  $('#groupPool').innerHTML = src.dims.filter(function (d){ return S.groupBy.indexOf(d.k) < 0; })
+  $('#groupPicked').innerHTML = gp || '<span class="sub">不选也行 —— 只按主索引分组</span>';
+  $('#groupPool').innerHTML = src.dims
+    .filter(function (d){ return S.groupBy.indexOf(d.k) < 0 && d.k !== S.primary; })
     .map(function (d){
       return '<button class="chip add" data-add-group="' + esc(d.k) + '" title="' + esc(d.why) + '">+ ' +
         esc(d.k) + '<span class="tag gray" style="margin-left:2px">' + d.card + ' 类</span></button>';
@@ -1187,27 +1391,33 @@ function renderStat(){
       '勾选后两人各记一次（默认）；取消则只算第一个。' +
     '</div>';
 
-  /* 指标 */
-  var mp = S.metrics.map(function (m){
-    var def = METRIC_DEF[m] || {};
-    return '<span class="chip sel" data-del-metric="' + esc(m) + '" title="' + esc(def.tip || '') + '">' +
-      '<span>' + esc(m) + '</span><span class="x">×</span></span>';
+  /* 第 3 步：统计项 —— 选一列 + 选怎么算 */
+  var mp = S.aggs.map(function (a, i){
+    var k = aggKey(a.col, a.agg);
+    var def = METRIC_DEF[k] || {};
+    return '<span class="chip sel" data-del-agg="' + i + '" title="' + esc(def.tip || '') + '">' +
+      '<span>' + esc(k) + '</span><span class="x">×</span></span>';
   }).join('');
-  $('#metricPicked').innerHTML = mp || '<span class="sub">至少选一个指标</span>';
-  $('#metricPool').innerHTML = src.metrics.filter(function (m){ return S.metrics.indexOf(m) < 0; })
-    .map(function (m){
-      var def = METRIC_DEF[m] || {};
-      return '<button class="chip add" data-add-metric="' + esc(m) + '" title="' + esc(def.tip || '') + '">+ ' +
-        esc(m) + '</button>';
-    }).join('');
+  $('#metricPicked').innerHTML = mp || '<span class="sub">还没加统计项 —— 至少加一个</span>';
 
-  /* 筛选条件：普通列给「= ≠ 包含」，日期列给「介于 早于 晚于」 */
-  var COL_KINDS = src.dims.map(function (d){ return d.k; })
-    .concat(src.timeCols.map(function (c){ return c.k; }));
-  var opts = {};
-  src.dims.forEach(function (d){
-    opts[d.k] = uniq(src.rows.map(function (r){ return String(r[d.k] == null ? '—' : r[d.k]); })).sort();
-  });
+  $('#aggCol').innerHTML = cols.map(function (c){
+    return '<option value="' + esc(c) + '">' + esc(c) + '（' + KIND_LABEL[kindOf[c]] + '）</option>';
+  }).join('');
+  fillAggKind();
+
+  /* 筛选条件：普通列给「= ≠ 包含」，日期列给「介于 早于 晚于」
+     列的可选项是这张表的**全部**列 —— 不再只限那几个分组列 */
+  var COL_KINDS = cols;
+  var valCache = {};
+  var valuesOf = function (col){
+    if (valCache[col]) return valCache[col];
+    /* 只给用到的列算取值列表 —— 43 张表全算一遍会卡 */
+    valCache[col] = uniq(src.rows.map(function (r){
+      var x = r[col];
+      return String(x == null || x === '' ? '—' : x);
+    })).sort();
+    return valCache[col];
+  };
   $('#condList').innerHTML = S.conds.map(function (c, i){
     var date = isDateCol(c.col), op = normOp(c);
     var valueBox;
@@ -1224,7 +1434,7 @@ function renderStat(){
     } else {
       valueBox = '<input list="vals-' + i + '" data-c-val="' + i + '" value="' + esc(c.val) +
         '" placeholder="选择或输入…">' +
-        '<datalist id="vals-' + i + '">' + (opts[c.col] || []).slice(0, 80).map(function (v){
+        '<datalist id="vals-' + i + '">' + valuesOf(c.col).slice(0, 80).map(function (v){
           return '<option value="' + esc(v) + '">';
         }).join('') + '</datalist>';
     }
@@ -1271,6 +1481,10 @@ function compute(){
   var dm = dims();
   var splitCols = {};
   src.dims.forEach(function (d){ if (d.split) splitCols[d.k] = true; });
+  /* 主索引如果自己就是「一格多人」那种列，也要拆开，否则主索引下的数会偏少 */
+  dm.forEach(function (d){
+    if (d !== DIM_TIME && /人|设计|班组|供应商|装配|负责/.test(d)) splitCols[d] = true;
+  });
 
   rows.forEach(function (r){
     /* 每个维度先算出这行的候选取值：时间→归期；一格多值→拆开成多个 */
@@ -1317,6 +1531,7 @@ function totalOf(m, out){
   if (def.total === 'sum') return out.reduce(function (a, o){ return a + o[m]; }, 0);
   if (def.total === 'avg') return avg(out.map(function (o){ return o[m]; }));
   if (def.total === 'max') return Math.max.apply(null, out.map(function (o){ return o[m]; }));
+  if (def.total === 'min') return Math.min.apply(null, out.map(function (o){ return o[m]; }));
   /* 比率类：加权平均。o[m] 本身已是百分数，这里不能再乘 100 */
   if (def.total === 'rate') return n ? Math.round(out.reduce(function (a, o){ return a + o[m] * o.__n; }, 0) / n) : 0;
   return '';
@@ -1330,24 +1545,71 @@ function syncResView(){
   $('#resPivotWrap').hidden = S.resView !== 'pivot';
 }
 
+/* 主索引重复的汇总卡 —— 把重复的值直接列出来，让人一眼确认是不是选错了主索引 */
+/* 主索引重复的汇总卡。
+   redOn = 不铺底色，只留角标；true = 逐行标红；false = 也不铺 */
+function renderDupCard(dup, total, redOn, dupRows){
+  var card = $('#dupCard'), box = $('#dupBox');
+  if (!card || !box) return;
+  if (!S.primary || !dup || !dup.values){ card.hidden = true; box.innerHTML = ''; return; }
+  var bad = Object.keys(dup.map).filter(function (v){ return dup.map[v] > 1; })
+              .sort(function (a, b){ return dup.map[b] - dup.map[a]; });
+  card.hidden = false;
+  box.innerHTML =
+    '<div class="sub">「' + esc(S.primary) + '」<b>不是唯一的</b>：<b>' + dup.distinct +
+      '</b> 个值摊在 ' + total + ' 行上，最多的一个出现 ' + dup.max + ' 次。' +
+      '也就是有 <b>' + dupRows + '</b> 行是「一个值汇总了多条记录」。<br>' +
+      (redOn
+        ? '下面这些行已<b>标红</b>。'
+        : (S.dupRed === false
+            ? '标红被你关掉了。'
+            : '但重复行占了结果的大多数，铺底色反而看不出哪个是异常，所以<b>不铺</b>了 —— 需要的话自己打勾。')) +
+      '每行前面的 <b>×N</b> 角标始终显示，那就是它汇总了几条记录。' +
+    '</div>' +
+    '<div class="opt-row" style="margin-top:10px">' +
+      '<label class="sw"><input type="checkbox" id="dupRedOn"' + (redOn ? ' checked' : '') +
+        '><span>把重复的主索引行标红</span></label>' +
+    '</div>' +
+    '<div class="chips" style="margin-top:10px">' +
+      bad.slice(0, 12).map(function (v){
+        return '<span class="chip dup">' + esc(v) +
+          '<span class="tag" style="margin-left:3px">' + dup.map[v] + ' 条</span></span>';
+      }).join('') +
+      (bad.length > 12 ? '<span class="sub">…还有 ' + (bad.length - 12) + ' 个</span>' : '') +
+    '</div>';
+}
+
 function renderResult(){
   var r = compute();
   var out = r.out, rows = r.rows, src = r.src, dm = r.dm;
   var gname = dimsLabel();
   var condTxt = condText();
-  var unit = S.src === 'master' ? '订单' : '工序';
 
   /* 导出必须拿到和屏幕上一模一样的数字，所以把这次结果存下来 */
   S.last = { out:out, rows:rows, dm:dm, sorted:[], sortKey:null, pivot:null };
 
-  $('#resSub').textContent = src.name + ' · 按【' + gname + '】分组 · ' + condTxt + ' · 命中 ' + rows.length + ' 条';
-  renderDetail(rows);
+  /* 主索引重复检测 —— 用来提醒「是不是真的想以它为主」 */
+  var dup = dupOf(rows);
+  S.last.dup = dup;
+  var dupCountOf = function (o){
+    if (!S.primary) return 0;
+    return (dup.map && dup.map[o[S.primary]]) || 0;
+  };
 
-  if (!out.length){
-    $('#resAnswer').innerHTML = '<div class="t">结果</div>没有符合条件的数据，试试放宽筛选。';
+  $('#resSub').textContent = src.name + ' · 主索引【' + (S.primary || '不设') + '】 · 分组【' +
+    (gname || '整表') + '】 · ' + condTxt + ' · 命中 ' + rows.length + ' 条';
+  renderDetail(rows);
+  if (!S.metrics.length || !out.length){
+    $('#resAnswer').innerHTML = !S.metrics.length
+      ? '<div class="t">还没法算</div>回到「做统计」，第 3 步里<b>至少加一个统计项</b>（选一列 + 选怎么算）。'
+      : '<div class="t">结果</div>没有符合条件的数据，试试放宽筛选。';
     $('#resKpis').innerHTML = '';
-    $('#resTableWrap').innerHTML = '<div class="empty"><div class="e">▦</div>没有数据</div>';
-    $('#resSql').textContent = '（无数据）';
+    $('#resTableWrap').innerHTML = '<div class="empty"><div class="e">▦</div>' +
+      (S.metrics.length ? '没有数据' : '还没选统计项') + '</div>';
+    $('#resBarWrap').innerHTML = '';
+    $('#resPivotWrap').innerHTML = '';
+    $('#resSql').textContent = S.metrics.length ? '（无数据）' : '（还没选统计项）';
+    S.last.sorted = [];
     S.resView = 'table';
     syncResView();
     return;
@@ -1355,49 +1617,50 @@ function renderResult(){
 
   var fmt = fmtVal;
 
-  /* 主排序指标：延期类优先，其次数量类 */
+  /* 排序指标：优先能加总的，比比率更容易看懂 */
   var sortKey = S.metrics.filter(function (m){
-    return ['平均延期天数', '最长延期', '设计延期合计'].indexOf(m) >= 0;
-  })[0] || S.metrics.filter(function (m){
-    return ['工序数', '订单数', '模具套数'].indexOf(m) >= 0;
+    return (METRIC_DEF[m] || {}).total === 'sum';
   })[0] || S.metrics[0];
 
-  var sorted = out.slice().sort(function (a, b){ return Number(b[sortKey]) - Number(a[sortKey]); });
+  var sorted = out.slice().sort(function (a, b){
+    return (Number(b[sortKey]) || 0) - (Number(a[sortKey]) || 0);
+  });
   S.last.sorted = sorted;
   S.last.sortKey = sortKey;
-  var worst = sorted[0];
 
-  /* 一句话结论：只说当前真的选了的指标，避免出现 NaN */
-  var has = function (m){ return S.metrics.indexOf(m) >= 0; };
+  /* 哪些行该铺底色：主索引一个值对应多条记录的。
+     但超过三成就别铺了 —— 整片红看不出哪个是异常。×N 角标始终在，信息不丢。 */
+  var dupRows = sorted.filter(function (o){ return dupCountOf(o) > 1; }).length;
+  var autoRed = dupRows > 0 && dupRows <= Math.max(10, Math.floor(sorted.length * 0.3));
+  var redOn = (S.dupRed === true) || ((S.dupRed == null) && autoRed);
+  S.last.redOn = redOn;
+  S.last.dupRows = dupRows;
+  renderDupCard(dup, rows.length, redOn, dupRows);
+
+  /* 一句话结论：只说当前真的选了的统计项，避免出现 NaN */
   var topOf = function (m){
     return out.slice().sort(function (a, b){ return (Number(b[m]) || 0) - (Number(a[m]) || 0); })[0];
   };
-  var answer;
-  if (S.src === 'master'){
-    var bits = ['按【' + gname + '】看了 <b>' + out.length + '</b> 组、<b>' + rows.length + '</b> 条订单'];
-    if (has('模具套数')) bits.push('共 <b>' + out.reduce(function (a, o){ return a + o.模具套数; }, 0) + '</b> 套模具');
-    if (has('准交率')) bits.push('整体准交率 <b>' + fmt('准交率', totalOf('准交率', out)) + '</b>');
-    answer = bits.join('，') + '。';
-    if (has('平均延期天数')){
-      var best = out.slice().sort(function (a, b){ return a.平均延期天数 - b.平均延期天数; })[0];
-      answer += '最拖的是 <b>' + esc(topOf('平均延期天数').__k) + '</b>（平均 ' +
-        fmt('平均延期天数', topOf('平均延期天数').平均延期天数) + '），最稳的是 <b>' + esc(best.__k) +
-        '</b>（' + fmt('平均延期天数', best.平均延期天数) + '）。';
-    } else {
-      answer += '数值最高的是 <b>' + esc(topOf(S.metrics[0]).__k) + '</b>（' +
-        fmt(S.metrics[0], topOf(S.metrics[0])[S.metrics[0]]) + '）。';
-    }
-  } else {
-    answer = '按【' + gname + '】看了 <b>' + out.length + '</b> 组、<b>' + rows.length + '</b> 条' + unit + '。' +
-      S.metrics.slice(0, 2).map(function (m){
-        var top = topOf(m);
-        return esc(m) + '最高的是 <b>' + esc(top.__k) + '</b>（' + fmt(m, top[m]) + '）';
-      }).join('；') + '。';
+  var answer = '以 <b>' + esc(S.primary || '整张表') + '</b> 为主索引，看了 <b>' + out.length +
+    '</b> 行、<b>' + rows.length + '</b> 条记录';
+  if (S.time.on) answer += '（按' + esc(GRAIN_NAME[S.time.grain]) + '拆开）';
+  answer += '。';
+  var picks = S.metrics.slice(0, 2).map(function (m){
+    var top = topOf(m);
+    if (!top) return '';
+    return esc(m) + '最高的是 <b>' + esc(top.__k) + '</b>（' + fmt(m, top[m]) + '）';
+  }).filter(Boolean).join('；');
+  answer += picks ? picks + '。' : '';
+  if (dup.values){
+    answer += '<br>主索引「' + esc(S.primary) + '」有 <b>' + dup.values +
+      '</b> 个值重复，涉及 ' + dup.rows + ' 行 —— ' +
+      (redOn ? '下面这些行已<b>标红</b>，请确认是不是想以它为主。'
+             : '行首的 <b>×N</b> 就是它汇总了几条记录，不铺底色（重复行太多，铺了看不出东西）。');
   }
   $('#resAnswer').innerHTML = '<div class="t">一句话结论</div>' + answer;
 
   /* KPI 卡 */
-  var kpi = [['分组数', out.length, '共 ' + rows.length + ' 条' + unit, false]];
+  var kpi = [['行数', out.length, '共 ' + rows.length + ' 条记录', false]];
   S.metrics.slice(0, 3).forEach(function (m){
     var tv = totalOf(m, out);
     var num = parseFloat(String(tv).replace(/[^\d.\-]/g, ''));
@@ -1420,15 +1683,20 @@ function renderResult(){
       return d === DIM_TIME ? grainShort(v, S.time.grain) : v;
     }).join(' · ');
   };
+  /* 一行 = 一个主索引值。重复的行铺底色（超过三成时不铺，见上面 redOn）。 */
   $('#resTableWrap').innerHTML = '<table class="rt">' +
     '<thead><tr>' + cols.map(function (c){ return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead>' +
     '<tbody>' + sorted.map(function (o){
-      var d = Number(o.平均延期天数);
-      var cls = (!isNaN(d) && d >= 20) ? 'bad' : ((!isNaN(d) && d >= 8) ? 'warn' : '');
-      return '<tr class="' + cls + '">' + cols.map(function (c, i){
+      var dn = dupCountOf(o);
+      return '<tr class="' + (dn > 1 && redOn ? 'dup' : '') + '">' + cols.map(function (c, i){
         var v = o[c];
         var isNum = typeof v === 'number';
-        return '<td class="' + (isNum ? 'num' : '') + '">' + esc(fmt(c, v)) + '</td>';
+        return '<td class="' + (isNum ? 'num' : '') + '">' + esc(fmt(c, v)) +
+          (i === 0 && dn > 1
+            ? '<span class="dupbadge' + (redOn ? '' : ' soft') +
+              '" title="这个主索引值对应 ' + dn + ' 条记录">×' + dn + '</span>'
+            : '') +
+          '</td>';
       }).join('') + '</tr>';
     }).join('') + '</tbody>' +
     '<tfoot><tr>' + cols.map(function (c, i){
@@ -1503,11 +1771,11 @@ function renderResult(){
   /* 口径说明 */
   $('#resSql').innerHTML =
     '<b>取</b> ' + esc(src.name) + '（' + rows.length + ' 行）' +
-    (S.link && LINK[S.src] ? '\n<b>联</b> ' + esc(LINK[S.src].to) + ' <b>按</b> ' + esc(LINK[S.src].on) : '') +
-    '\n<b>分</b> ' + esc(gname) +
-    '\n<b>算</b> ' + S.metrics.map(esc).join(', ') +
+    '\n<b>主</b> ' + esc(S.primary || '（不设 —— 整表汇总）') +
+    '\n<b>分</b> ' + esc(gname || '（整表）') +
+    '\n<b>算</b> ' + (S.metrics.map(esc).join(', ') || '（还没选统计项）') +
     '\n<b>筛</b> ' + esc(condTxt) +
-    '\n<b>出</b> ' + out.length + ' 组';
+    '\n<b>出</b> ' + out.length + ' 行';
 
   syncResView();
 }
@@ -2161,7 +2429,7 @@ document.addEventListener('click', function (e){
 
   if ((el = e.target.closest('[data-tpl]'))){
     var t = TPLS[+el.dataset.tpl];
-    applyCfg({ src:t.s, group:t.g, metrics:t.m, time:t.t, view:t.v });
+    applyCfg({ src:t.s, primary:t.p, group:t.g, aggs:t.a, time:t.t, view:t.v });
     renderStat(); go('result'); return;
   }
 
@@ -2179,13 +2447,8 @@ document.addEventListener('click', function (e){
     S.groupBy = S.groupBy.filter(function (x){ return x !== el.dataset.delGroup; });
     renderStat(); return;
   }
-  if ((el = e.target.closest('[data-add-metric]'))){
-    var m = el.dataset.addMetric;
-    if (S.metrics.indexOf(m) < 0) S.metrics.push(m);
-    renderStat(); return;
-  }
-  if ((el = e.target.closest('[data-del-metric]'))){
-    S.metrics = S.metrics.filter(function (x){ return x !== el.dataset.delMetric; });
+  if ((el = e.target.closest('[data-del-agg]'))){
+    S.aggs.splice(+el.dataset.delAgg, 1);
     renderStat(); return;
   }
   if ((el = e.target.closest('[data-c-rm]'))){
@@ -2227,6 +2490,26 @@ document.addEventListener('input', function (e){
 });
 document.addEventListener('change', function (e){
   if (e.target.id === 'fileInput'){ var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) openFile(f); return; }
+  if (e.target.id === 'srcSel'){
+    /* 换表：按那张表自己的默认配置重新开始 */
+    applyCfg({ src: e.target.value });
+    renderStat(); return;
+  }
+  if (e.target.id === 'srcSel2'){
+    /* 数据源页的下拉 —— 换了之后统计页跟着走 */
+    applyCfg({ src: e.target.value });
+    renderSource(); renderStat(); return;
+  }
+  if (e.target.id === 'primarySel'){
+    S.primary = e.target.value;
+    /* 同一个列不能既是主索引又是附加分组 / 时间轴 */
+    S.groupBy = S.groupBy.filter(function (g){ return g !== S.primary; });
+    if (S.primary && S.time.on && S.time.col === S.primary) S.time.on = false;
+    S.dupRed = null;        /* 换了主索引，标红策略回到自动 */
+    renderStat(); return;
+  }
+  if (e.target.id === 'aggCol'){ fillAggKind(); return; }
+  if (e.target.id === 'dupRedOn'){ S.dupRed = e.target.checked; renderResult(); return; }
   if (e.target.id === 'timeOn'){ S.time.on = e.target.checked; renderStat(); return; }
   if (e.target.id === 'timeCol'){ S.time.col = e.target.value; renderStat(); return; }
   if (e.target.id === 'splitMulti'){ S.splitMulti = e.target.checked; renderStat(); return; }
@@ -2286,7 +2569,14 @@ $('#expTpl').onclick = function (){
   alert('「常用统计方式」里现在是这张表自动生成的建议——按月×装配人、按季×班组等，点一下直接套用。\n\n把你自己调好的那套存下来、下个月换新表一键复用：这个还没做，等你定。\n要只存在这台电脑上（换手机就没了），还是跟着文件走？');
 };
 $('#runStat').onclick = function (){ go('result'); };
-$('#toggleLink').onclick = function (){ S.link = !S.link; renderStat(); };
+$('#addAgg').onclick = function (){
+  var colEl = $('#aggCol'), kindEl = $('#aggKind');
+  if (!colEl || !kindEl || !colEl.value) return;
+  var col = colEl.value, kind = kindEl.value;
+  var already = S.aggs.some(function (a){ return a.col === col && a.agg === kind; });
+  if (!already) S.aggs.push({ col: col, agg: kind });
+  renderStat();
+};
 $('#toggleAll').onclick = function (){
   var all = RULES.reduce(function (a, s){ return a.concat(s.items.map(function (i){ return i.n; })); }, []);
   S.rulesOn = (S.rulesOn.length === all.length) ? [] : all.slice();
@@ -2739,21 +3029,57 @@ function pickDetailCols(t){
   return keys.concat(t.derived.map(function (d){ return d.k; })).concat(times).concat(others).slice(0, 12);
 }
 function defaultsFor(t){
-  var dims = t.dims, times = t.timeCols, met = t.metricNames;
-  var pickIn = function (arr, re, get){
-    for (var i = 0; i < arr.length; i++) if (re.test(get ? get(arr[i]) : arr[i])) return arr[i];
-    return null;
+  var cols = t.cols, times = t.timeCols, n = t.rows.length;
+
+  /* 主索引：挑最像「一条记录一个值」的那一列 ——
+     模具编号、订单编号、序号这种。挑错也不怕，用户自己在下拉里改。 */
+  var primary = '', bestScore = -Infinity;
+  cols.forEach(function (c){
+    if (/^第\d+列$/.test(c.name)) return;
+    var r = c.distinct / Math.max(1, n), score = 5;
+    if (r > 0.98)      score = 120;      /* 几乎唯一，就是主键 */
+    else if (r > 0.9)  score = 90;
+    else if (r > 0.5)  score = 50;
+    else if (r > 0.1)  score = 25;
+    if (/编号|编码|单号/.test(c.name)) score += 40;
+    /* 「序号」就是行号，当主索引等于什么都没分。除非这张表实在没别的可选，
+       否则别让它抢过模具编号。 */
+    if (/序号|^号$/.test(c.name)) score -= 60;
+    if (/人|设计|负责/.test(c.name)) score += 15;
+    if (c.cat === 'num' && !/编号|编码|单号|序号/.test(c.name)) score -= 25;
+    if (score > bestScore){ bestScore = score; primary = c.name; }
+  });
+
+  /* 统计项：主索引看条数，再挑一个「真的能加」的数字列求和 ——
+     列名里带 数/量/套/率/延期/工期 的才建议合计；对「工序」这种
+     序号类数字列求和毫无意义，宁可默认不给。 */
+  var aggs = [], used = {};
+  var add = function (col, agg){
+    var k = col + '|' + agg;
+    if (!col || used[k] || aggs.length >= 3) return;
+    used[k] = 1; aggs.push({ col: col, agg: agg });
   };
-  var dim = pickIn(dims, /装配人|负责|设计|人$/, function (d){ return d.k; }) || dims[0];
-  var time = pickIn(times, /完工|完成|交模|送样/, function (d){ return d.k; })
-          || pickIn(times, /截止|计划/, function (d){ return d.k; }) || times[0];
-  var metrics = ['条数'];
-  var push = function (m){ if (m && metrics.indexOf(m) < 0 && metrics.length < 4) metrics.push(m); };
-  met.forEach(function (m){ if (/延期.*平均|工期.*平均/.test(m)) push(m); });
-  met.forEach(function (m){ if (/去重数/.test(m)) push(m); });
-  met.forEach(function (m){ if (metrics.length < 4 && !/求和/.test(m)) push(m); });
-  return { group: dim ? [dim.k] : [], metrics: metrics,
-           time: time ? { col: time.k, grain: 'month' } : null };
+  if (primary) add(primary, 'count');
+  var numCols = cols.filter(function (c){
+    return c.cat === 'num' && !/编号|编码|单号|序号|^第\d+列$/.test(c.name);
+  });
+  var addable = numCols.filter(function (c){
+    return /数|量|套|个|件|金额|费|价|重|长|宽|高|率|延期|工期|天数/.test(c.name);
+  });
+  /* 名字看不出能不能加，就**不给**默认合计。
+     宁可默认少一个统计项（用户自己在下拉里加），也不要出现
+     「备注·合计」「图纸下发·合计」这种看不懂的数字。 */
+  addable.slice(0, 1).forEach(function (c){ add(c.name, 'sum'); });
+  if (!aggs.length && cols.length) add(cols[0].name, 'count');
+
+  /* 时间轴：优先「完工/完成/交模/送样」，其次「计划/截止」，避开主索引那一列 */
+  var tnames = times.map(function (x){ return x.k; }).filter(function (k){ return k !== primary; });
+  var tpick = tnames.filter(function (k){ return /完工|完成|交模|送样/.test(k); })[0]
+           || tnames.filter(function (k){ return /计划|截止|要求/.test(k); })[0]
+           || tnames[0] || '';
+
+  /* 附加分组默认留空：主索引已经定了「一行是什么」，再加一层反而难读 */
+  return { primary: primary, aggs: aggs, group: [], time: null, timeCol: tpick };
 }
 
 function buildSrcFromSheets(){
@@ -2774,7 +3100,12 @@ function buildSrcFromSheets(){
       }).map(function (c){ return c.name; }),
       colCount: t.cols.length, headerRow: t.headerRow, markerRow: t.markerRow,
       hasHeader: !t.noHeader, mergeCount: t.mergeCount, score: score,
-      sheetIdx: sh.idx
+      sheetIdx: sh.idx,
+      /* 列清单：表头顺序优先，后面跟上派生出来的「延期(天)/工期(天)」 */
+      colOrder: t.cols.map(function (c){ return c.name; }).concat(
+        t.derived.map(function (d){ return d.k; }).filter(function (k){
+          return t.cols.every(function (c){ return c.name !== k; });
+        }))
     };
     out[id].defaults = defaultsFor(t);
     order.push(id);
@@ -2789,41 +3120,38 @@ function buildTemplates(){
   TPLS = [];
   S.tableOrder.forEach(function (id){
     var s = SRC[id], d = s.defaults;
-    var dm = s.dims[0];
-    if (s.timeCols.length && dm){
-      TPLS.push({ s:id, n:'按月 × ' + dm.k, d:s.name, g:[dm.k],
-                  t:{ col:s.timeCols[0].k, grain:'month' }, m:d.metrics, v:'pivot' });
+    if (!d || !d.primary) return;
+    /* 卡片上<small>那行写「算了什么」，表名 renderTpl 会自己带上 */
+    var cap = (d.aggs || []).map(function (a){ return a.col + '·' + AGG_NAME[a.agg]; }).join(' + ');
+
+    /* 一条条记录看（主索引就是主键）—— 最常用 */
+    TPLS.push({ s:id, p:d.primary, n:'按 ' + d.primary + ' 逐条看', d:cap || '只看行数',
+                g:[], a:d.aggs, t:null, v:'table' });
+
+    /* 主索引 × 月 */
+    var person = s.dims.filter(function (x){ return /装配人|负责|设计|人$/.test(x.k); })[0];
+    if (d.timeCol && person){
+      TPLS.push({ s:id, p:person.k, n:'每月 × ' + person.k, d:cap || '只看行数', g:[],
+                  a:d.aggs, t:{ col:d.timeCol, grain:'month' }, v:'pivot' });
+    } else if (d.timeCol){
+      TPLS.push({ s:id, p:d.primary, n:d.primary + ' × 月', d:cap || '只看行数', g:[],
+                  a:d.aggs, t:{ col:d.timeCol, grain:'month' }, v:'pivot' });
     }
-    if (s.timeCols.length && s.dims[1]){
-      TPLS.push({ s:id, n:'按季 × ' + s.dims[1].k, d:s.name, g:[s.dims[1].k],
-                  t:{ col:s.timeCols[0].k, grain:'quarter' }, m:d.metrics });
+
+    /* 按人看 */
+    if (person && person.k !== d.primary){
+      TPLS.push({ s:id, p:person.k, n:'按 ' + person.k + ' 看', d:cap || '只看行数', g:[],
+                  a:d.aggs, t:null, v:'table' });
     }
-    if (s.dims.length >= 2 && TPLS.length < 14){
-      TPLS.push({ s:id, n:dm.k + ' × ' + s.dims[1].k, d:s.name, g:[dm.k, s.dims[1].k],
-                  t:null, m:d.metrics, v:'pivot' });
+
+    /* 主索引 × 另一个分组列（交叉表，一眼看完） */
+    var d2 = s.dims.filter(function (x){ return x.k !== d.primary; })[0];
+    if (d2 && TPLS.length < 14){
+      TPLS.push({ s:id, p:d.primary, n:d.primary + ' × ' + d2.k, d:cap || '只看行数',
+                  g:[d2.k], a:d.aggs, t:null, v:'pivot' });
     }
   });
   TPLS = TPLS.slice(0, 16);
-}
-
-/* 每张表的 key 列去和别的表对一遍，找到共同的就建联动（要给每张表都建，不能只给第一张） */
-function autoLink(){
-  var ids = S.tableOrder;
-  ids.forEach(function (id){
-    for (var j = 0; j < ids.length; j++){
-      if (ids[j] === id) continue;
-      var a = SRC[id], b = SRC[ids[j]];
-      for (var k = 0; k < a.keyCols.length; k++){
-        if (b.keyCols.indexOf(a.keyCols[k]) >= 0){
-          LINK[id] = { to:b.name, on:a.keyCols[k],
-            title:b.name + ' · 按 ' + a.keyCols[k],
-            why:'拿「' + a.keyCols[k] + '」到《' + b.name + '》里对一遍，把对方的列带过来一起看。',
-            out:[], sql:'<b>按</b> ' + a.keyCols[k] + ' <b>关联</b> ' + b.name };
-          return;
-        }
-      }
-    }
-  });
 }
 
 /* —— 导入 —— */
@@ -2869,11 +3197,9 @@ async function openFile(file){
       } catch (e) { t = null; }
       WB.sheets.push({ idx:i, name:list[i].name, table:t });
     }
-    SRC = {}; 
-    if (LINK) Object.keys(LINK).forEach(function (k){ if (k !== 'master' && k !== 'plan') delete LINK[k]; });
+    SRC = {};
     var n = buildSrcFromSheets();
     if (!n) throw new Error('这些工作表里没有能用的数据表（都要至少 5 行、2 列）');
-    autoLink();
     buildTemplates();
     FILE_NAME = file.name;
     setFileLabel();
@@ -2903,8 +3229,8 @@ var SRC_GROUP_ICON = function (s){
 function renderSource(){
   var h = [];
   h.push('<div class="page-title">选择数据表</div>');
-  h.push('<div class="page-sub">导入 Excel 后，这里会列出文件里<b>所有</b>工作表。点一下就用那张表做统计 —— ' +
-         '下面每张表列出的「可分组 / 可做时间轴 / 可算指标」都是<b>那张表真实有的列</b>。</div>');
+  h.push('<div class="page-sub">Excel 导进来后，用下拉选一张表就行 —— <b>每张表自己算自己的</b>，' +
+         '不再猜「这张表和哪张有关系」。下一步到「做统计」里选<b>主索引</b>（以哪一列为主）和<b>统计项</b>。</div>');
 
   /* 上传区 */
   /* 内置浏览器（微信/QQ/钉钉…）普遍不给网页选文件的权限，得先告诉用户，
@@ -2947,69 +3273,54 @@ function renderSource(){
       '</div></div>');
   }
 
-  /* 表列表 */
-  var q = (S.sheetFilter || '').trim();
-  var rows = WB ? WB.sheets.filter(function (s){ return !q || s.name.indexOf(q) >= 0; }) : [];
-  h.push('<div class="card"><div class="card-h"><span>文件里的工作表</span>' +
-    '<span class="spacer"></span><span class="hint">点一行就选中它</span></div>');
-  if (WB){
-    h.push('<div style="padding:10px 15px 2px"><input id="sheetSearch" class="search" placeholder="搜索表名，比如「计划」「结存」「退」…" value="' + esc(q) + '"></div>');
-  }
-  h.push('<div id="sheetList">');
+  /* 选表：下拉。43 张表铺成列表要点半天，下拉里自带键盘搜索 */
+  var usableList = (S.tableOrder || []).filter(function (id){ return !!SRC[id]; });
+  var deadSheets = WB ? WB.sheets.filter(function (sh){ return !sh.table; }) : [];
+  h.push('<div class="card"><div class="card-h"><span>选一张表</span>' +
+    '<span class="spacer"></span><span class="hint">每张表自己算自己的</span></div>' +
+    '<div class="card-b">');
   if (!WB){
-    h.push('<div class="empty"><div class="e">▦</div>还没导入文件</div>');
-  } else if (!rows.length){
-    h.push('<div class="empty"><div class="e">🔍</div>没有匹配「' + esc(q) + '」的表</div>');
-  } else {
-    rows.forEach(function (sh){
-      var t = sh.table;
-      var id = null;
-      for (var i = 0; i < S.tableOrder.length; i++)
-        if (SRC[S.tableOrder[i]].sheetIdx === sh.idx) { id = S.tableOrder[i]; break; }
-      var usable = !!id;
-      var on = usable && id === S.src;
-      if (!t){
-        /* 读不出来的表也要列出来，否则用户会以为表丢了 */
-        h.push('<div class="srow dead"><span class="dot"></span>' +
-          '<span class="sn">' + esc(sh.name) + '</span>' +
-          '<span class="sm">空表或没有可读数据</span>' +
-          '<span class="spacer"></span><span class="tag gray">跳过</span></div>');
-        return;
-      }
-      h.push('<button class="srow' + (on ? ' on' : '') + (usable ? '' : ' dead') + '"' +
-        (usable ? ' data-pick-sheet="' + id + '"' : '') + '>' +
-        '<span class="dot"></span>' +
-        '<span class="sn">' + esc(sh.name) + '</span>' +
-        '<span class="sm">' + t.rows.length.toLocaleString() + ' 行 × ' + t.cols.length + ' 列</span>' +
-        (t.noHeader ? '<span class="tag warn">没识别到表头</span>'
-                    : '<span class="tag ok">表头 r' + t.headerRow + '</span>') +
-        (t.markerRow ? '<span class="tag gray">跳过 r' + t.markerRow + ' 责任人行</span>' : '') +
-        '<span class="spacer"></span>' +
-        (usable
-          ? '<span class="tag info">' + t.dims.length + ' 列可分组</span>' +
-            '<span class="tag ' + (t.timeCols.length ? 'info' : 'gray') + '">' + t.timeCols.length + ' 个日期列</span>' +
-            '<span class="tag gray">' + t.metricNames.length + ' 个指标</span>'
-          : '<span class="tag gray">太短，跳过</span>') +
-        '</button>');
-    });
+    h.push('<div class="sub">还没导入文件。现在用的是内置的两张示例表：总计划表、生产计划表。</div>');
+  } else if (!usableList.length){
+    h.push('<div class="empty"><div class="e">▦</div>这个文件里没有能拿来统计的表</div>');
+  }
+  if (usableList.length){
+    h.push('<div class="opt-row"><select id="srcSel2">' +
+      usableList.map(function (id){
+        var s = SRC[id];
+        return '<option value="' + esc(id) + '"' + (id === S.src ? ' selected' : '') + '>' +
+          esc(s.name) + '（' + s.rows.length.toLocaleString() + ' 行 × ' + (s.colOrder ? s.colOrder.length : s.cols ? s.cols.length : 0) + ' 列）</option>';
+      }).join('') +
+      '</select>' +
+      '<button class="btn sm" data-nav="stat">去统计 →</button></div>');
+  }
+  if (deadSheets.length){
+    /* 读不出来的表也要看得到，否则用户会以为表丢了 */
+    h.push('<details style="margin-top:12px"><summary class="sub" style="cursor:pointer">' +
+      '有 <b>' + deadSheets.length + '</b> 张表读不出数据（空表或没有可用的表头）—— 点开看是哪些</summary>' +
+      '<div class="chips" style="margin-top:9px">' +
+      deadSheets.map(function (sh){ return '<span class="chip">' + esc(sh.name) + '</span>'; }).join('') +
+      '</div></details>');
   }
   h.push('</div></div>');
 
   /* 选中表的细项 */
-  if (WB && SRC[S.src]){
+  if (SRC[S.src]){
     var s = SRC[S.src];
-    h.push('<div class="card"><div class="card-h"><span>《' + esc(s.name) + '》能统计什么</span>' +
+    var cs = colsOf();
+    h.push('<div class="card"><div class="card-h"><span>《' + esc(s.name) + '》里有什么</span>' +
       '<span class="spacer"></span><span class="hint">换表后这里会跟着变</span></div><div class="card-b">' +
-      '<div class="field-label">可以按这些列分组<span class="tag gray">' + s.dims.length + ' 个</span></div>' +
-      '<div class="chips">' + (s.dims.map(function (d){
-        return '<span class="chip">' + esc(d.k) + '<span class="tag gray" style="margin-left:2px">' + d.card + ' 类</span></span>';
-      }).join('') || '<span class="sub">没有适合分组的列</span>') + '</div>' +
+      '<div class="field-label">全部列<span class="tag gray">' + cs.length + ' 列 —— 任意一列都能当主索引或拿来统计</span></div>' +
+      '<div class="chips">' + cs.map(function (c){
+        var k = colKind(c);
+        return '<span class="chip">' + esc(c) +
+          '<span class="tag ' + (k === 'date' ? 'info' : k === 'num' ? 'ok' : 'gray') +
+          '" style="margin-left:2px">' + ({ id:'编号', text:'文字', num:'数字', date:'日期' }[k]) + '</span></span>';
+      }).join('') + '</div>' +
       '<div class="field-label" style="margin-top:16px">可以当时间轴<span class="tag gray">' + s.timeCols.length + ' 个</span></div>' +
       '<div class="chips">' + (s.timeCols.map(function (d){
         return '<span class="chip">' + esc(d.k) + '<span class="tag info" style="margin-left:2px">' + d.t + '</span></span>';
-      }).join('') || '<span class="sub">这张表没有日期列，用不了时间维度</span>') + '</div>' +
-      '<div class="field-label" style="margin-top:16px">可以算的指标<span class="tag gray">' + s.metrics.length + ' 个</span></div>' +
-      '<div class="chips">' + s.metrics.map(function (m){ return '<span class="chip">' + esc(m) + '</span>'; }).join('') + '</div>' +
+      }).join('') || '<span class="sub">这张表没有日期列，用不了按天/月/季统计</span>') + '</div>' +
       '<div style="margin-top:16px"><button class="btn pri sm" data-nav="stat">用这张表做统计 →</button></div>' +
       '</div></div>');
   }
