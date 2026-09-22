@@ -241,6 +241,32 @@ table.rt tbody tr.dup td:first-child{box-shadow:inset 3px 0 0 var(--bad);font-we
 /* 合计不是「把上面那列加起来」的标记 */
 .naMark{display:inline-block;margin-left:5px;padding:0 4px;border-radius:4px;background:#fff4e0;color:#8a5a00;font-size:10px;font-weight:700;font-family:var(--mono);vertical-align:1px}
 
+/* ── 选列的下拉面板 ── */
+.ms-btn{background:#fff;border:1px solid var(--line)}
+.ms-panel{border:1px solid var(--line);border-radius:var(--r-s);background:#fff;margin-top:11px;overflow:hidden}
+.ms-top{display:flex;gap:7px;align-items:center;padding:10px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.ms-top .search{flex:1;min-width:150px;width:auto}
+.ms-list{max-height:330px;overflow:auto;padding:6px}
+.ms-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;cursor:pointer;font-size:13.5px;margin:0}
+.ms-item:hover{background:#f4f7fb}
+.ms-item.on{background:var(--brand-bg)}
+.ms-item input{width:16px;height:16px;flex:0 0 auto;accent-color:var(--brand);margin:0}
+.ms-item .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── 分组结果：一组一张卡 ── */
+.gr-tools{display:flex;gap:9px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.gr{background:#fff;border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+.gr-hd{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:#f7f9fc;flex-wrap:wrap}
+.gr-hd:hover{background:#eef3f9}
+.gr-hd .nm{font-weight:700;font-size:14px}
+.gr-hd .n{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.gr-hd .sp{flex:1;min-width:10px}
+.gr-hd .caret{font-size:11px;color:var(--muted)}
+.gr-bd{border-top:1px solid var(--line2)}
+.gr.misskey .gr-hd{background:#fff4e0}
+.gr.misskey .gr-hd .nm{color:#8a5a00}
+.miss{color:#9aa7b5;font-style:italic}
+
 .bars{padding:14px 15px}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
 .bar-row .lb{flex:0 0 76px;font-size:12.5px;text-align:right;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -398,15 +424,15 @@ window.addEventListener('error', function (ev) {
     <!-- ══════════ ② 统计 ══════════ -->
     <section id="v-stat" hidden>
       <div class="page-title">做统计</div>
-      <div class="page-sub">先<b>选一张表</b>，再选<b>主索引</b>（以哪一列为主）和<b>统计项</b>（选一列 + 选怎么算）。' +
-        '下面所有可选项都是那张表里真实存在的列。</div>
+      <div class="page-sub">选一张表 → 选<b>以哪一列为主</b> → 选<b>要看哪些列</b>。
+        结果就是把每一行<b>原样列出来</b> —— 不去重、不汇总，所以数字不会骗人。</div>
 
       <div class="tpl-scroll" id="tplList"></div>
 
       <div class="card">
         <div class="card-h">
           <span class="step">1</span><span>看哪张表</span>
-          <span class="spacer"></span><span class="hint">决定一行代表什么</span>
+          <span class="spacer"></span><span class="hint">每张表自己算自己的</span>
         </div>
         <div class="card-b">
           <div class="srctog" id="srcTog"></div>
@@ -416,14 +442,46 @@ window.addEventListener('error', function (ev) {
 
       <div class="card">
         <div class="card-h">
-          <span class="step">2</span><span>以什么为主</span>
-          <span class="spacer"></span><span class="hint">主索引 = 结果表的第一列</span>
+          <span class="step">2</span><span>以哪一列为主</span>
+          <span class="spacer"></span><span class="hint">按这一列把记录聚到一起</span>
         </div>
         <div class="card-b">
-          <div class="field">
-            <div class="field-label">主索引 <span class="tag info">以哪一条为主统计</span></div>
-            <div id="primaryBox"></div>
+          <div id="primaryBox"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <span class="step">3</span><span>要统计哪些列</span>
+          <span class="spacer"></span><span class="hint">选中的一定会出现在结果里</span>
+        </div>
+        <div class="card-b">
+          <div class="opt-row">
+            <button class="btn ms-btn" id="colBtn"><span id="colBtnTx">选择列</span> ▾</button>
+            <span class="sub" id="colSummary"></span>
           </div>
+          <div class="ms-panel" id="colPanel" hidden>
+            <div class="ms-top">
+              <input id="colSearch" class="search" placeholder="搜列名，比如「模具」「日期」…">
+              <button class="btn sm" data-col-all="1">全选</button>
+              <button class="btn sm" data-col-none="1">清空</button>
+              <button class="btn sm" data-col-inv="1">反选</button>
+            </div>
+            <div class="ms-list" id="colList"></div>
+          </div>
+          <div class="picked" id="colPicked" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- 老功能（时间分组 / 聚合统计项 / 筛选条件）暂时屏蔽。
+           把 UI_SIMPLE 改成 false 就整套回来。 -->
+      <div id="advCards" hidden>
+      <div class="card">
+        <div class="card-h">
+          <span class="step">·</span><span>按什么分组</span>
+          <span class="spacer"></span><span class="hint">时间 × 人／客户／班组</span>
+        </div>
+        <div class="card-b">
           <div class="field">
             <div class="field-label">再按时间分 <span class="tag info">按天 ／ 周 ／ 月 ／ 季度 ／ 年</span></div>
             <div id="timeBox"></div>
@@ -439,7 +497,7 @@ window.addEventListener('error', function (ev) {
 
       <div class="card">
         <div class="card-h">
-          <span class="step">3</span><span>算什么统计项</span>
+          <span class="step">·</span><span>算什么统计项</span>
           <span class="spacer"></span><span class="hint">选一列 + 选怎么算</span>
         </div>
         <div class="card-b">
@@ -457,7 +515,7 @@ window.addEventListener('error', function (ev) {
       </div>
 
       <div class="card">
-        <div class="card-h"><span class="step">4</span><span>只看哪些</span><span class="spacer"></span><span class="hint">留空＝全部</span></div>
+        <div class="card-h"><span class="step">·</span><span>只看哪些</span><span class="spacer"></span><span class="hint">留空＝全部</span></div>
         <div class="card-b">
           <div id="condList"></div>
           <button class="btn sm" id="addCond">+ 加一个条件</button>
@@ -465,6 +523,7 @@ window.addEventListener('error', function (ev) {
             取值都是从表里读出来的 —— 「客户名称」只会列出宏昌 / 恒合 / 天驰 / 莱伦…，不会让你手打错字。
           </div>
         </div>
+      </div>
       </div>
 
       <div class="go-wrap"><button class="btn pri block sticky-go" id="runStat">开始统计</button></div>
@@ -477,6 +536,12 @@ window.addEventListener('error', function (ev) {
       <div class="print-head" id="printHead"></div>
 
       <div class="answer" id="resAnswer"></div>
+
+      <!-- 分组视图：以主列分组，每一行记录原样列出。不去重、不汇总。 -->
+      <div id="simpleResult"></div>
+
+      <!-- 老功能的聚合视图（KPI / 三视图 / 口径提醒），暂时屏蔽 -->
+      <div id="advResult" hidden>
       <div class="kpis" id="resKpis"></div>
 
       <div class="card" id="blankCard" hidden>
@@ -505,19 +570,6 @@ window.addEventListener('error', function (ev) {
         <div id="resTableWrap" class="tw"></div>
         <div id="resBarWrap" class="bars" hidden></div>
         <div id="resPivotWrap" class="tw" hidden></div>
-        <div class="export">
-          <button class="btn pri" id="expPng">导出图片（.png）</button>
-          <button class="btn" id="expXlsx">导出 Excel（.xlsx）</button>
-          <button class="btn" id="expPdf">打印 / 存为 PDF</button>
-          <button class="btn" id="expCsv">导出 CSV</button>
-          <span style="flex:1"></span>
-          <button class="btn" id="expTpl">存成模板</button>
-        </div>
-        <div class="sub" style="padding:0 15px 14px">
-          <b>图片</b>直接把当前结果画成一张图，发微信群、贴车间看最方便（在「排行图」页导出的就是柱状图）。<br>
-          <b>Excel</b> 带两张表：汇总 + 明细（不受屏上 200 行限制）。<br>
-          <b>PDF</b> 走系统打印对话框选「另存为 PDF」—— 中文不会乱码，A4 横向已排好版。
-        </div>
       </div>
 
       <div class="card">
@@ -529,14 +581,26 @@ window.addEventListener('error', function (ev) {
         </div>
         <div class="tw" id="resDetail"></div>
       </div>
+      </div>
 
       <div class="card">
-        <div class="card-h"><span>这张结果怎么算出来的</span></div>
+        <div class="export">
+          <button class="btn pri" id="expPng">导出图片（.png）</button>
+          <button class="btn" id="expXlsx">导出 Excel（.xlsx）</button>
+          <button class="btn" id="expPdf">打印 / 存为 PDF</button>
+          <button class="btn" id="expCsv">导出 CSV</button>
+        </div>
+        <div class="sub" style="padding:0 15px 14px">
+          <b>图片</b>直接把当前结果画成一张图，发微信群、贴车间看最方便。<br>
+          <b>Excel</b> 带全部行（不受屏幕上显示条数的限制）。<br>
+          <b>PDF</b> 走系统打印对话框选「另存为 PDF」—— 中文不会乱码，A4 横向已排好版。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span>这份结果是怎么来的</span></div>
         <div class="card-b">
           <div class="link-sql" id="resSql"></div>
-          <div class="sub" style="margin-top:11px">
-            存成模板后，下个月把新表拖进来，点一下同一个模板就直接出结果。
-          </div>
         </div>
       </div>
     </section>
@@ -569,6 +633,10 @@ window.addEventListener('error', function (ev) {
    ========================================================================== */
 
 var FILE_NAME = '2026年生产计划表) - 副本.xlsx';
+
+/* 简化模式：以某一列为主 + 选要看哪些列，把记录原样列出来。不做任何聚合。
+   时间分组 / 聚合统计项 / 筛选条件还留在代码里，把这里改成 false 就整套回来。 */
+var UI_SIMPLE = true;
 
 var ICON = {
   grid:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',
@@ -955,7 +1023,13 @@ function colsOf(){
     }
     src.colOrder = all;
   }
-  src.colOrderUI = all.filter(function (c){ return !/^第\d+列$/.test(c); });
+  /* 没有表头的「第N列」（图片列、合并单元格的残留）不进下拉：
+     用户根本不知道那是什么，只会把选项搅乱。
+     但**整张表都没识别到表头**时（比如「送模」，只有一列叫「序号」，其余无名），
+     「第N列」就是唯一的列名 —— 滤掉的话用户一个列都选不了。 */
+  src.colOrderUI = (src.hasHeader === false)
+    ? all
+    : all.filter(function (c){ return !/^第\d+列$/.test(c); });
   return src.colOrderUI;
 }
 
@@ -1087,6 +1161,25 @@ function nonAddReport(rows){
   });
 
   return rep;
+}
+
+/* 默认要看哪几列：先编号，再名称，再日期，最后补齐到 8 列 */
+function defaultShowCols(src){
+  var pool = (src.colOrder && src.colOrder.length) ? src.colOrder : (src.detailCols || []);
+  /* 这张表没表头的话，「第N列」也得能用 */
+  var use = (src.hasHeader === false)
+    ? pool
+    : pool.filter(function (c){ return !/^第\d+列$/.test(c); });
+  var out = [];
+  var push = function (c){
+    if (!c || c === S.primary || out.indexOf(c) >= 0 || out.length >= 8) return;
+    out.push(c);
+  };
+  use.forEach(function (c){ if (/编号|编码|单号/.test(c)) push(c); });
+  use.forEach(function (c){ if (/名称|零件|工序|物料|客户/.test(c)) push(c); });
+  use.forEach(function (c){ if (colKind(c) === 'date') push(c); });
+  use.forEach(function (c){ push(c); });
+  return out;
 }
 
 var DEMO_METRIC_DEF = {
@@ -1243,6 +1336,8 @@ var S = {
   time:{ on:true, col:'装配完成时间', grain:'month' },
   splitMulti:true,
   primary:'装配人',                      /* 主索引：结果表的第一列，一行 = 一个装配人 */
+  showCols:['模具编号','零件名称','物料编码','工序','工序名称','装配完成时间'],
+  openSet:{},                            /* 分组卡片的展开状态 */
   groupBy:[],                            /* 附加分组：在主索引之后再细分 */
   aggs:[{ col:'模具编号', agg:'uniq' },     /* 装配套数：一套模具多道工序只算一套 */
         { col:'模具编号', agg:'count' }],   /* 工序条数 */
@@ -1306,6 +1401,7 @@ function dimsLabel(){ return dims().map(dimName).join(' → '); }
 
 /* 统一的应用配置入口：模板 / 换表 / 换主索引 / 换粒度都走这里 */
 function applyCfg(cfg){
+  var prevSrc = S.src;
   if (!SRC[cfg.src]) cfg.src = (S.tableOrder && S.tableOrder[0]) || 'master';
   S.src = cfg.src;
   var src = SRC[S.src], sd = src.defaults || { group:[], aggs:[], time:null };
@@ -1333,6 +1429,18 @@ function applyCfg(cfg){
   S.conds = [];
   if (src.dims.length) S.conds.push({ col:src.dims[0].k, op:'=', val:'' });
   if (tc.length) S.conds.push({ col:tc[0].k, op:'介于', val:'', val2:'' });
+
+  /* 要显示的列：换表就按新表给一套合用的默认；没换表就别动用户选的 */
+  if (cfg.showCols) S.showCols = cfg.showCols.slice();
+  else if (cfg.src !== prevSrc) S.showCols = defaultShowCols(src);
+
+  if (UI_SIMPLE){
+    /* 时间轴 / 附加分组 / 筛选条件先屏蔽 —— 留着代码，改 UI_SIMPLE 就回来 */
+    S.time = { on:false, col:(sd.timeCol || (tc[0] ? tc[0].k : '')), grain:'month' };
+    S.groupBy = [];
+    S.conds = [];
+    S.openSet = {};
+  }
 }
 
 /* ---------- 导航 ---------- */
@@ -1449,8 +1557,9 @@ function renderStat(){
       cols.length + ' 列' +
       (src.hasHeader === false ? ' · <span class="warn">未识别到表头</span>' : '') +
     '</div>';
-  $('#srcNote').innerHTML = '下面所有可选项都是《' + esc(src.name) + '》里<b>真实存在</b>的列 —— ' +
-    '换张表会全部跟着换。每张表自己算自己的。';
+  $('#srcNote').innerHTML = (src.hasHeader === false)
+    ? '这张表<b>没识别到表头</b>，所以列名是「第1列／第2列」—— 按位置选就行。'
+    : '下面所有可选项都是《' + esc(src.name) + '》里<b>真实存在</b>的列 —— 换张表会全部跟着换。每张表自己算自己的。';
 
   /* 第 2 步 a：主索引 —— 随便哪一列都能当主 */
   var KIND_LABEL = { id:'编号', text:'文字', num:'数字', date:'日期' };
@@ -1466,6 +1575,10 @@ function renderStat(){
       }).join('') +
     '</select></div>' +
     '<div class="sub" style="margin-top:8px" id="primaryHint">' + primaryHint(src) + '</div>';
+
+  /* 第 3 步：要统计哪些列（简化模式的核心） */
+  var adv = $('#advCards'); if (adv) adv.hidden = UI_SIMPLE;
+  if (UI_SIMPLE) renderColPicker(src, cols);
 
   /* 分组：时间维度独立一个开关，其余列从池子里加 */
   var gp = '';
@@ -1799,7 +1912,176 @@ function renderBlankCard(rep, nonAdd){
   box.innerHTML = html;
 }
 
+/* ── 选列下拉 ──
+   要「选中的列一定会出现在结果里」，所以是个多选：
+   点一下切换（反点）、全选 / 清空 / 反选，还能搜。 */
+function renderColPicker(src, cols){
+  var tx = $('#colBtnTx');
+  if (tx) tx.textContent = S.showCols.length ? ('已选 ' + S.showCols.length + ' 列') : '选择列';
+
+  var summary = $('#colSummary');
+  if (summary){
+    summary.innerHTML = S.showCols.length
+      ? '选中的这些<b>一定会</b>出现在结果里'
+      : '<b class="warn">还没选 —— 至少选一列，否则结果里没东西可看</b>';
+  }
+
+  var picked = $('#colPicked');
+  if (picked){
+    picked.innerHTML = S.showCols.length
+      ? S.showCols.map(function (c){
+          return '<span class="chip sel" data-col-del="' + esc(c) + '"><span>' + esc(c) +
+            '</span><span class="x">×</span></span>';
+        }).join('')
+      : '<span class="sub">主列本身会当分组标题，不用再选一遍</span>';
+  }
+
+  renderColList();
+}
+
+function renderColList(){
+  var list = $('#colList');
+  if (!list) return;
+  var cols = colsOf();
+  var q = (($('#colSearch') || {}).value || '').trim();
+  var kids = cols.filter(function (c){ return !q || c.indexOf(q) >= 0; });
+  if (!kids.length){
+    list.innerHTML = '<div class="sub" style="padding:12px">没有匹配「' + esc(q) + '」的列</div>';
+    return;
+  }
+  list.innerHTML = kids.map(function (c){
+    var on = S.showCols.indexOf(c) >= 0;
+    var k = colKind(c);
+    return '<label class="ms-item' + (on ? ' on' : '') + '">' +
+      '<input type="checkbox" data-col-pick="' + esc(c) + '"' + (on ? ' checked' : '') + '>' +
+      '<span class="nm">' + esc(c) + (c === S.primary ? '　（就是主列）' : '') + '</span>' +
+      '<span class="tag ' + (k === 'date' ? 'info' : k === 'num' ? 'ok' : 'gray') + '">' +
+        ({ id:'编号', text:'文字', num:'数字', date:'日期' }[k]) + '</span></label>';
+  }).join('');
+}
+
+/* ── 简化模式的结果：以主列分组，每一行记录原样列出。不去重、不汇总。 ── */
+var MISSKEY = '\u0000';
+
+function renderSimpleResult(){
+  var src = SRC_OF();
+  var all = compute().rows;
+  var cols = S.showCols.filter(function (c){ return c !== S.primary; });
+
+  var map = {}, order = [];
+  all.forEach(function (r){
+    var v = S.primary ? r[S.primary] : '';
+    var k = isBlank(v) ? MISSKEY : String(v);
+    if (!map[k]){ map[k] = []; order.push(k); }
+    map[k].push(r);
+  });
+  order.sort(function (a, b){
+    if (a === MISSKEY) return -1;
+    if (b === MISSKEY) return 1;
+    return String(a).localeCompare(String(b), 'zh-CN', { numeric: true });
+  });
+  var grps = order.map(function (k){ return { key:k, miss:(k === MISSKEY), rows:map[k] }; });
+
+  S.last = { rows:all, groups:grps, cols:cols, simple:true,
+             head:[S.primary].concat(cols),
+             /* 简化模式没有聚合结果，但导出/绘图里还有些老代码会读这几个字段，
+                给个空值免得报 “Cannot read properties of undefined” */
+             out:[], dm:[], sorted:[], sortKey:null, pivot:null };
+
+  $('#resSub').textContent = src.name + ' · 以【' + (S.primary || '（未选）') + '】为主 · ' +
+    all.length + ' 条记录 · ' + grps.length + ' 组';
+
+  /* 口径说明：把「不去重」写在明面上 */
+  var blanks = {};
+  cols.forEach(function (c){
+    var n = 0;
+    all.forEach(function (r){ if (isBlank(r[c])) n++; });
+    if (n) blanks[c] = n;
+  });
+  $('#resSql').innerHTML =
+    '<b>取</b> ' + esc(src.name) + '（' + all.length + ' 行）' +
+    '\n<b>主</b> ' + esc(S.primary || '（未选）') +
+    '\n<b>列</b> ' + (cols.length ? cols.map(esc).join(', ') : '（未选）') +
+    '\n<b>去重</b> 没有做任何去重 —— 一条原始记录就是一行结果' +
+    '\n<b>空缺</b> ' + (Object.keys(blanks).length
+        ? Object.keys(blanks).map(function (c){ return esc(c) + ' ' + blanks[c] + ' 条'; }).join('；')
+        : '所选列都有值');
+
+  if (!all.length){
+    $('#resAnswer').innerHTML = '<div class="t">结果</div>这张表没有可用的记录。';
+    $('#simpleResult').innerHTML = '<div class="card"><div class="empty"><div class="e">▦</div>没有数据</div></div>';
+    return;
+  }
+  if (!cols.length){
+    $('#resAnswer').innerHTML = '<div class="t">还不能出结果</div>' +
+      '回「做统计」第 3 步，<b>至少要选一列</b>要看什么（比如模具编号、零件名称、日期）。';
+    $('#simpleResult').innerHTML = '<div class="card"><div class="empty"><div class="e">▦</div>' +
+      '还没选要看的列</div></div>';
+    return;
+  }
+
+  /* 一句话结论 */
+  var missN = (map[MISSKEY] || []).length;
+  var top = grps.filter(function (g){ return !g.miss; })
+                .sort(function (a, b){ return b.rows.length - a.rows.length; })[0];
+  var ans = '《' + esc(src.name) + '》按【<b>' + esc(S.primary || '—') + '</b>】分，共 <b>' +
+    grps.length + '</b> 组、<b>' + all.length + '</b> 条记录';
+  if (top) ans += '，记录最多的是 <b>' + esc(top.key) + '</b>（' + top.rows.length + ' 条）';
+  ans += '。每组把原始记录<b>逐条列出</b> —— 没有去重、没有汇总。';
+  if (missN){
+    ans += '<br><span class="warn">有 <b>' + missN + '</b> 条记录的「' + esc(S.primary) +
+      '」是空的，单独放在最前面。</span>';
+  }
+  $('#resAnswer').innerHTML = '<div class="t">一句话结论</div>' + ans;
+
+  /* 组列表。默认全部展开 —— 用户选的列必须看得见，这也是「一定会出现在结果里」的意思。 */
+  var CAP = 4000, drawn = 0, total = all.length;
+  var h = [];
+  h.push('<div class="gr-tools">' +
+    '<span class="sub">共 <b>' + grps.length + '</b> 组 —— 点标题展开／收起</span>' +
+    '<span style="flex:1"></span>' +
+    '<button class="btn sm" data-gr-all="1">全部展开</button>' +
+    '<button class="btn sm" data-gr-none="1">全部收起</button></div>');
+
+  grps.forEach(function (g, i){
+    var open = (S.openSet[g.key] === undefined) ? true : !!S.openSet[g.key];
+    h.push('<div class="gr' + (g.miss ? ' misskey' : '') + '">' +
+      '<div class="gr-hd" data-gr-toggle="' + i + '">' +
+        '<span class="nm">' + (g.miss ? '（' + esc(S.primary || '主列') + '为空）' : esc(g.key)) + '</span>' +
+        '<span class="n">' + g.rows.length + ' 条</span>' +
+        '<span class="sp"></span>' +
+        '<span class="caret">' + (open ? '▾ 收起' : '▸ 展开') + '</span>' +
+      '</div>');
+    if (open && drawn < CAP){
+      var body = g.rows.slice(0, CAP - drawn);
+      drawn += body.length;
+      h.push('<div class="gr-bd tw"><table class="rt"><thead><tr>' +
+        cols.map(function (c){ return '<th>' + esc(c) + '</th>'; }).join('') +
+        '</tr></thead><tbody>' +
+        body.map(function (r){
+          return '<tr>' + cols.map(function (c){
+            var v = r[c];
+            return isBlank(v) ? '<td><span class="miss">空缺</span></td>'
+                              : '<td>' + esc(String(v)) + '</td>';
+          }).join('') + '</tr>';
+        }).join('') + '</tbody></table></div>');
+    }
+    h.push('</div>');
+  });
+  if (drawn < total && drawn >= CAP){
+    h.push('<div class="card"><div class="card-b sub">屏幕上只画了前 <b>' + CAP +
+      '</b> 条。导出 Excel / CSV 拿到的还是<b>全部 ' + total + '</b> 条。</div></div>');
+  }
+  $('#simpleResult').innerHTML = h.join('');
+}
+
+/* 老功能（聚合视图）整套保留着，UI_SIMPLE 改成 false 就回来 */
 function renderResult(){
+  if (UI_SIMPLE) return renderSimpleResult();
+  return renderResultAdvanced();
+}
+
+function renderResultAdvanced(){
   var r = compute();
   var out = r.out, rows = r.rows, src = r.src, dm = r.dm;
   var gname = dimsLabel();
@@ -2217,36 +2499,62 @@ function condText(){
 }
 function metaLines(){
   var L = S.last, d = new Date();
-  return [
-    '数据源：' + FILE_NAME + ' → ' + SRC_OF().name + '（命中 ' + L.rows.length + ' 行）',
-    '主索引：' + (S.primary || '不设（整表汇总）'),
-    '分组维度：' + (dimsLabel() || '整表') +
-      (S.time.on ? '（时间轴 = ' + S.time.col + ' · ' + GRAIN_NAME[S.time.grain] + '）' : ''),
-    '统计项：' + S.metrics.map(headerWithUnit).join('、'),
-    '筛选条件：' + condText(),
-    '一格多人：' + (S.splitMulti ? '拆开各算一次' : '只算第一个'),
-    /* 空值被跳过多少行，必须写进导出里 —— 图片和 Excel 是要发给别人的，
-       只在屏幕上说没用。少算了多少，看的人有权知道。 */
-    '空值提醒：' + ((L.blanks && L.blanks.length)
-      ? L.blanks.map(function (b){
-          return b.metric + ' 跳过 ' + (b.blank + b.nonNum) + ' 行' +
-                 '（空 ' + b.blank + (b.nonNum ? '，非数字 ' + b.nonNum : '') + '）';
-        }).join('；')
-      : '没有行因空值被跳过'),
-    /* 合计不是把上面那列加起来，必须写进导出 —— 别人拿计算器一加对不上，会以为工具算错了 */
-    '合计口径：' + ((L.nonAdd && L.nonAdd.length)
-      ? L.nonAdd.map(function (x){
-          return x.unbalanced
-            ? (x.metric + ' 的合计 = 全局平均（非各行平均再平均）')
-            : (x.metric + ' 有 ' + x.shared + ' 个值跨组：列相加 ' + x.sumOver +
-               ' ≠ 真实不重复 ' + x.distinct);
-        }).join('；')
-      : '所选统计项的合计都是把各行相加'),
-    S.drill ? '明细范围：只看 ' + S.drill.dim + ' = ' + S.drill.val : '明细范围：全部',
-    '导出时间：' + ymd(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes())
-  ];
+  var lines = ['数据源：' + FILE_NAME + ' → ' + SRC_OF().name + '（命中 ' + L.rows.length + ' 行）'];
+
+  if (UI_SIMPLE){
+    lines.push('以哪一列为主：' + (S.primary || '（未选）'));
+    lines.push('统计的列：' + ((L.cols && L.cols.length) ? L.cols.join('、') : '（未选）'));
+    lines.push('分组：' + ((L.groups && L.groups.length) || 0) + ' 组');
+    lines.push('去重：没有做任何去重 —— 一条原始记录就是一行结果');
+    lines.push('空缺：单元格为空时写「空缺」，不做任何推测或填充');
+    lines.push('导出时间：' + ymd(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()));
+    return lines;
+  }
+
+  lines.push('主索引：' + (S.primary || '不设（整表汇总）'));
+  lines.push('分组维度：' + (dimsLabel() || '整表') +
+    (S.time.on ? '（时间轴 = ' + S.time.col + ' · ' + GRAIN_NAME[S.time.grain] + '）' : ''));
+  lines.push('统计项：' + S.metrics.map(headerWithUnit).join('、'));
+  lines.push('筛选条件：' + condText());
+  lines.push('一格多人：' + (S.splitMulti ? '拆开各算一次' : '只算第一个'));
+  /* 空值被跳过多少行，必须写进导出里 —— 图片和 Excel 是要发给别人的，
+     只在屏幕上说没用。少算了多少，看的人有权知道。 */
+  lines.push('空值提醒：' + ((L.blanks && L.blanks.length)
+    ? L.blanks.map(function (b){
+        return b.metric + ' 跳过 ' + (b.blank + b.nonNum) + ' 行' +
+               '（空 ' + b.blank + (b.nonNum ? '，非数字 ' + b.nonNum : '') + '）';
+      }).join('；')
+    : '没有行因空值被跳过'));
+  /* 合计不是把上面那列加起来，必须写进导出 —— 别人拿计算器一加对不上，会以为工具算错了 */
+  lines.push('合计口径：' + ((L.nonAdd && L.nonAdd.length)
+    ? L.nonAdd.map(function (x){
+        return x.unbalanced
+          ? (x.metric + ' 的合计 = 全局平均（非各行平均再平均）')
+          : (x.metric + ' 有 ' + x.shared + ' 个值跨组：列相加 ' + x.sumOver +
+             ' ≠ 真实不重复 ' + x.distinct);
+      }).join('；')
+    : '所选统计项的合计都是把各行相加'));
+  if (S.drill) lines.push('明细范围：只看 ' + S.drill.dim + ' = ' + S.drill.val);
+  lines.push('导出时间：' + ymd(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()));
+  return lines;
 }
 function exportPayload(){
+  /* 简化模式：一张表就够 —— 主列 + 要看的列，一行一条原始记录（空缺写「空缺」） */
+  if (UI_SIMPLE){
+    var rows = (S.last && S.last.rows) || [];
+    var cols = (S.last && S.last.cols) || [];
+    var cell = function (v){ return isBlank(v) ? '空缺' : String(v); };
+    var head = [S.primary || '记录'].concat(cols);
+    var body = rows.map(function (r){
+      return [S.primary ? cell(r[S.primary]) : ''].concat(
+        cols.map(function (c){ return cell(r[c]); }));
+    });
+    return {
+      title: SRC_OF().name + ' · 以【' + (S.primary || '—') + '】为主',
+      meta: metaLines(),
+      sheets: [{ name:'统计结果', head:head, body:body, foot:null }]
+    };
+  }
   var sum = summaryMatrix(), det = detailMatrix(S.last.rows);
   return {
     title: SRC_OF().name + ' · ' + dimsLabel() + ' 统计',
@@ -2503,8 +2811,10 @@ function exportPng(){
   y += 10;
 
   /* KPI */
-  var kpi = [['分组数', String(L.out.length)]];
-  S.metrics.slice(0, 3).forEach(function (m){ kpi.push([m, String(fmtVal(m, totalOf(m, L.out)))]); });
+  var kpi = UI_SIMPLE
+    ? [['分组数', String((L.groups || []).length)], ['记录数', String((L.rows || []).length)]]
+    : [['分组数', String((L.out || []).length)]].concat(
+        S.metrics.slice(0, 3).map(function (m){ return [m, String(fmtVal(m, totalOf(m, L.out)))]; }));
   var kw = (W - PAD * 2 - 3 * 12) / 4;
   kpi.slice(0, 4).forEach(function (kp, idx){
     var x = PAD + idx * (kw + 12);
@@ -2709,6 +3019,50 @@ document.addEventListener('click', function (e){
     S.aggs.splice(+el.dataset.delAgg, 1);
     renderStat(); return;
   }
+
+  /* ── 简化模式：选列下拉 ── */
+  if (e.target.closest('#colBtn')){
+    var cp = $('#colPanel');
+    if (cp){
+      cp.hidden = !cp.hidden;
+      if (!cp.hidden) renderColList();
+    }
+    return;
+  }
+  if (e.target.closest('[data-col-all]')){
+    S.showCols = colsOf().slice(); renderColPicker(SRC_OF()); return;
+  }
+  if (e.target.closest('[data-col-none]')){
+    S.showCols = []; renderColPicker(SRC_OF()); return;
+  }
+  if (e.target.closest('[data-col-inv]')){
+    S.showCols = colsOf().filter(function (c){ return S.showCols.indexOf(c) < 0; });
+    renderColPicker(SRC_OF()); return;
+  }
+  if ((el = e.target.closest('[data-col-del]'))){
+    S.showCols = S.showCols.filter(function (c){ return c !== el.dataset.colDel; });
+    renderColPicker(SRC_OF()); return;
+  }
+
+  /* ── 简化模式：分组展开／收起 ── */
+  if ((el = e.target.closest('[data-gr-toggle]'))){
+    var gs = (S.last && S.last.groups) || [];
+    var g = gs[+el.dataset.grToggle];
+    if (g){
+      var cur = (S.openSet[g.key] === undefined) ? true : !!S.openSet[g.key];
+      S.openSet[g.key] = !cur;
+      renderResult();
+    }
+    return;
+  }
+  if (e.target.closest('[data-gr-all]')){
+    ((S.last && S.last.groups) || []).forEach(function (g){ S.openSet[g.key] = true; });
+    renderResult(); return;
+  }
+  if (e.target.closest('[data-gr-none]')){
+    ((S.last && S.last.groups) || []).forEach(function (g){ S.openSet[g.key] = false; });
+    renderResult(); return;
+  }
   if ((el = e.target.closest('[data-c-rm]'))){
     S.conds.splice(+el.dataset.cRm, 1); renderStat(); return;
   }
@@ -2748,6 +3102,14 @@ document.addEventListener('input', function (e){
 });
 document.addEventListener('change', function (e){
   if (e.target.id === 'fileInput'){ var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) openFile(f); return; }
+  /* 列多选：点一下切换（反点），选中的一定会出现在结果里 */
+  if (e.target.dataset && e.target.dataset.colPick !== undefined){
+    var pc = e.target.dataset.colPick;
+    var at = S.showCols.indexOf(pc);
+    if (at >= 0) S.showCols.splice(at, 1); else S.showCols.push(pc);
+    renderColPicker(SRC_OF());
+    return;
+  }
   if (e.target.id === 'srcSel'){
     /* 换表：按那张表自己的默认配置重新开始 */
     applyCfg({ src: e.target.value });
@@ -2778,6 +3140,7 @@ document.addEventListener('change', function (e){
 });
 
 document.addEventListener('input', function (e){
+  if (e.target.id === 'colSearch'){ renderColList(); return; }
   if (e.target.id === 'sheetSearch'){
     S.sheetFilter = e.target.value;
     var pos = e.target.selectionStart;
@@ -2813,21 +3176,22 @@ function pickSheet(id){
   go('stat');
 }
 
-$('#addCond').onclick = function (){
+/* 元素可能不在（被屏蔽的老功能就删掉了），绑定时不能直接 .onclick，
+   否则 null.onclick 会抛错、整个脚本直接死。 */
+function on(sel, fn){ var el = $(sel); if (el) el.onclick = fn; }
+
+on('#addCond', function (){
   var src = SRC_OF();
   S.conds.push({ col: src.dims[2] ? src.dims[2].k : src.dims[0].k, op:'=', val:'' });
   renderStat();
-};
-$('#detailClear').onclick = function (){ S.drill = null; renderResult(); };
-$('#expPng').onclick = exportPng;
-$('#expXlsx').onclick = exportXlsx;
-$('#expCsv').onclick = exportCsv;
-$('#expPdf').onclick = exportPdf;
-$('#expTpl').onclick = function (){
-  alert('「常用统计方式」里现在是这张表自动生成的建议——按月×装配人、按季×班组等，点一下直接套用。\n\n把你自己调好的那套存下来、下个月换新表一键复用：这个还没做，等你定。\n要只存在这台电脑上（换手机就没了），还是跟着文件走？');
-};
-$('#runStat').onclick = function (){ go('result'); };
-$('#addAgg').onclick = function (){
+});
+on('#detailClear', function (){ S.drill = null; renderResult(); });
+on('#expPng', exportPng);
+on('#expXlsx', exportXlsx);
+on('#expCsv', exportCsv);
+on('#expPdf', exportPdf);
+on('#runStat', function (){ go('result'); });
+on('#addAgg', function (){
   var colEl = $('#aggCol'), kindEl = $('#aggKind');
   if (!colEl || !kindEl || !colEl.value) return;
   var col = colEl.value, kind = kindEl.value;
@@ -2836,7 +3200,7 @@ $('#addAgg').onclick = function (){
   var already = S.aggs.some(function (a){ return aggKey(a.col, a.agg) === key; });
   if (!already) S.aggs.push({ col: col, agg: kind });
   renderStat();
-};
+});
 $('#toggleAll').onclick = function (){
   var all = RULES.reduce(function (a, s){ return a.concat(s.items.map(function (i){ return i.n; })); }, []);
   S.rulesOn = (S.rulesOn.length === all.length) ? [] : all.slice();
