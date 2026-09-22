@@ -266,6 +266,11 @@ table.rt tbody tr.dup td:first-child{box-shadow:inset 3px 0 0 var(--bad);font-we
 .gr.misskey .gr-hd{background:#fff4e0}
 .gr.misskey .gr-hd .nm{color:#8a5a00}
 .miss{color:#9aa7b5;font-style:italic}
+/* 手动删除那一条的按钮列 */
+table.rt th.del-th,table.rt td.del-td{width:40px;min-width:40px;padding:3px 6px;text-align:center}
+.rowdel{border:0;background:#f0f4f9;color:#93a2b3;font-size:14px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px;font-family:inherit}
+.rowdel:hover,.rowdel:active{background:#fdeceb;color:var(--bad)}
+.btn.deln{background:#fdeceb;border-color:#f2c3bf;color:#8c2f27}
 
 .bars{padding:14px 15px}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
@@ -923,6 +928,23 @@ AGGS.forEach(function (a){ AGG_NAME[a.k] = a.sn; });
 /* 什么算「没填」：空串、null、undefined、全是空白 */
 function isBlank(v){ return v == null || String(v).trim() === ''; }
 
+/* 每条记录一个稳定 id —— 手动删除要能记住删的是哪一条。
+   用行对象自己的标记，比用数组下标可靠（排序/筛选后下标会变）。 */
+var RID = 0;
+function ensureIds(rows){
+  for (var i = 0; i < rows.length; i++){
+    if (rows[i].__rid === undefined) rows[i].__rid = 'r' + (++RID);
+  }
+}
+
+/* 这一条在指定的这几列里有没有空缺 */
+function rowHasBlank(r, cols){
+  for (var i = 0; i < cols.length; i++){
+    if (cols[i] && isBlank(r[cols[i]])) return true;
+  }
+  return false;
+}
+
 /* 「行数」不依赖具体某一列，所以名字里不带列名 */
 function aggKey(col, agg){ return agg === 'rows' ? '行数' : col + ' · ' + AGG_NAME[agg]; }
 
@@ -1346,6 +1368,7 @@ var S = {
          { col:'装配开始时间', op:'介于', val:'', val2:'' }],
   drill:null,
   dupRed:null,                           /* 重复的主索引行要不要铺底色：null=自动 */
+  deleted:{},                            /* 手动删除的记录 id（只在本次统计里排除） */
   resView:'pivot',
   openGroups:['A'],
   tableOrder:['master','plan'],
@@ -1433,6 +1456,9 @@ function applyCfg(cfg){
   /* 要显示的列：换表就按新表给一套合用的默认；没换表就别动用户选的 */
   if (cfg.showCols) S.showCols = cfg.showCols.slice();
   else if (cfg.src !== prevSrc) S.showCols = defaultShowCols(src);
+
+  /* 换了表，之前手动删掉的那些就不算数了 */
+  if (cfg.src !== prevSrc) S.deleted = {};
 
   if (UI_SIMPLE){
     /* 时间轴 / 附加分组 / 筛选条件先屏蔽 —— 留着代码，改 UI_SIMPLE 就回来 */
@@ -1707,8 +1733,12 @@ function renderStat(){
 /* ---------- 计算 ---------- */
 function compute(){
   var src = SRC_OF();
+  ensureIds(src.rows);
   var conds = S.conds.filter(function (c){ return c.val !== ''; });
   var rows = src.rows.filter(function (r){
+    /* 被手动删除的记录在这里就被排除 —— 下游的分组数、每组条数、
+       副标题、导出全都是从 rows 数出来的，所以会自动跟着变 */
+    if (S.deleted && S.deleted[r.__rid]) return false;
     return conds.every(function (c){
       /* 日期列：按区间比字符串即可，'YYYY-MM-DD' 字典序＝时间序 */
       if (isDateCol(c.col)){
@@ -1991,7 +2021,8 @@ function renderSimpleResult(){
   $('#resSub').textContent = src.name + ' · 以【' + (S.primary || '（未选）') + '】为主 · ' +
     all.length + ' 条记录 · ' + grps.length + ' 组';
 
-  /* 口径说明：把「不去重」写在明面上 */
+  /* 口径说明：把「不去重」「删了几条」写在明面上 */
+  var delN = Object.keys(S.deleted).length;
   var blanks = {};
   cols.forEach(function (c){
     var n = 0;
@@ -2003,13 +2034,20 @@ function renderSimpleResult(){
     '\n<b>主</b> ' + esc(S.primary || '（未选）') +
     '\n<b>列</b> ' + (cols.length ? cols.map(esc).join(', ') : '（未选）') +
     '\n<b>去重</b> 没有做任何去重 —— 一条原始记录就是一行结果' +
+    '\n<b>删除</b> ' + (delN ? ('已从本次统计里排除 ' + delN + ' 条（未改动原文件）') : '没有排除任何记录') +
     '\n<b>空缺</b> ' + (Object.keys(blanks).length
         ? Object.keys(blanks).map(function (c){ return esc(c) + ' ' + blanks[c] + ' 条'; }).join('；')
         : '所选列都有值');
 
   if (!all.length){
-    $('#resAnswer').innerHTML = '<div class="t">结果</div>这张表没有可用的记录。';
-    $('#simpleResult').innerHTML = '<div class="card"><div class="empty"><div class="e">▦</div>没有数据</div></div>';
+    var dn0 = Object.keys(S.deleted).length;
+    $('#resAnswer').innerHTML = '<div class="t">结果</div>' +
+      (dn0 ? '这些记录都被你删掉了。' : '这张表没有可用的记录。');
+    $('#simpleResult').innerHTML = '<div class="card">' +
+      '<div class="empty"><div class="e">▦</div>' + (dn0 ? '已全部删除' : '没有数据') + '</div>' +
+      (dn0 ? '<div class="card-b" style="text-align:center">' +
+        '<button class="btn" data-del-restore="1">恢复已删除的（' + dn0 + ' 条）</button></div>' : '') +
+      '</div>';
     return;
   }
   if (!cols.length){
@@ -2036,12 +2074,26 @@ function renderSimpleResult(){
 
   /* 组列表。默认全部展开 —— 用户选的列必须看得见，这也是「一定会出现在结果里」的意思。 */
   var CAP = 4000, drawn = 0, total = all.length;
+  var chkCols = (S.primary ? [S.primary] : []).concat(cols);
+  var blankRows = all.filter(function (r){ return rowHasBlank(r, chkCols); });
   var h = [];
   h.push('<div class="gr-tools">' +
-    '<span class="sub">共 <b>' + grps.length + '</b> 组 —— 点标题展开／收起</span>' +
+    '<span class="sub">共 <b>' + grps.length + '</b> 组 · <b>' + all.length + '</b> 条记录' +
+      (blankRows.length ? ' · 其中 <b>' + blankRows.length + '</b> 条有<b>空缺</b>' : '') + '</span>' +
     '<span style="flex:1"></span>' +
+    (blankRows.length
+      ? '<button class="btn sm" data-del-blank="1">删掉所有带空缺的（' + blankRows.length + ' 条）</button>'
+      : '') +
+    (delN ? '<button class="btn sm deln" data-del-restore="1">恢复已删除的（' + delN + ' 条）</button>' : '') +
     '<button class="btn sm" data-gr-all="1">全部展开</button>' +
     '<button class="btn sm" data-gr-none="1">全部收起</button></div>');
+
+  if (delN){
+    h.push('<div class="banner warn"><span class="ic">!</span><div>' +
+      '已从这次统计里<b>去掉 ' + delN + ' 条</b>记录 —— 只是不算它们，' +
+      '<b>你的 Excel 文件一个字都没改</b>。上面所有数量都是按剩下的 ' + all.length +
+      ' 条重新数的。点「恢复已删除的」可以放回来。</div></div>');
+  }
 
   grps.forEach(function (g, i){
     var open = (S.openSet[g.key] === undefined) ? true : !!S.openSet[g.key];
@@ -2055,15 +2107,21 @@ function renderSimpleResult(){
     if (open && drawn < CAP){
       var body = g.rows.slice(0, CAP - drawn);
       drawn += body.length;
-      h.push('<div class="gr-bd tw"><table class="rt"><thead><tr>' +
+      h.push('<div class="gr-bd tw"><table class="rt"><thead><tr><th class="del-th"></th>' +
         cols.map(function (c){ return '<th>' + esc(c) + '</th>'; }).join('') +
         '</tr></thead><tbody>' +
         body.map(function (r){
-          return '<tr>' + cols.map(function (c){
-            var v = r[c];
-            return isBlank(v) ? '<td><span class="miss">空缺</span></td>'
-                              : '<td>' + esc(String(v)) + '</td>';
-          }).join('') + '</tr>';
+          var bad = rowHasBlank(r, chkCols);
+          return '<tr>' +
+            '<td class="del-td">' + (bad
+              ? '<button class="rowdel" data-del-row="' + esc(r.__rid) + '" ' +
+                'title="这条有空缺 —— 点一下从统计里去掉（不动原文件）">×</button>'
+              : '') + '</td>' +
+            cols.map(function (c){
+              var v = r[c];
+              return isBlank(v) ? '<td><span class="miss">空缺</span></td>'
+                                : '<td>' + esc(String(v)) + '</td>';
+            }).join('') + '</tr>';
         }).join('') + '</tbody></table></div>');
     }
     h.push('</div>');
@@ -2507,6 +2565,9 @@ function metaLines(){
     lines.push('分组：' + ((L.groups && L.groups.length) || 0) + ' 组');
     lines.push('去重：没有做任何去重 —— 一条原始记录就是一行结果');
     lines.push('空缺：单元格为空时写「空缺」，不做任何推测或填充');
+    lines.push('手动删除：' + (Object.keys(S.deleted || {}).length
+      ? ('本次统计已排除 ' + Object.keys(S.deleted).length + ' 条（未改动原始文件）')
+      : '没有排除任何记录'));
     lines.push('导出时间：' + ymd(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()));
     return lines;
   }
@@ -3042,6 +3103,27 @@ document.addEventListener('click', function (e){
   if ((el = e.target.closest('[data-col-del]'))){
     S.showCols = S.showCols.filter(function (c){ return c !== el.dataset.colDel; });
     renderColPicker(SRC_OF()); return;
+  }
+
+  /* ── 手动删除某一条（只是从这次统计里排除，不动原文件） ── */
+  if ((el = e.target.closest('[data-del-row]'))){
+    S.deleted = S.deleted || {};
+    S.deleted[el.dataset.delRow] = 1;
+    renderResult(); return;
+  }
+  if (e.target.closest('[data-del-blank]')){
+    S.deleted = S.deleted || {};
+    var seen = 0;
+    ((S.last && S.last.rows) || []).forEach(function (r){
+      if (rowHasBlank(r, (S.primary ? [S.primary] : []).concat(S.last.cols || []))){
+        S.deleted[r.__rid] = 1; seen++;
+      }
+    });
+    renderResult(); return;
+  }
+  if (e.target.closest('[data-del-restore]')){
+    S.deleted = {};
+    renderResult(); return;
   }
 
   /* ── 简化模式：分组展开／收起 ── */
