@@ -1860,7 +1860,9 @@ function compute(){
       if (dim === DIM_TIME){
         var k = grainKey(r[S.time.col], S.time.grain);
         vals = [k == null ? '未填' : k];
-      } else if (splitCols[dim] && S.splitMulti){
+      } else if (!UI_SIMPLE && splitCols[dim] && S.splitMulti){
+        /* 「一格多人」拆开只对聚合有意义。简化模式里**绝不能拆** ——
+           用户要的是「表格是什么字就是什么字」：一格写「李千军/黄德健」就是一条记录。 */
         vals = multi(r[dim]);
       } else {
         var raw = r[dim];
