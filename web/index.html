@@ -1,0 +1,3023 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6feb">
+<title>模具车间表格统计器 · 界面原型</title>
+<style>
+/* ============================================================
+   设计令牌 —— 工业场景：高对比、大触控、弱装饰
+   ============================================================ */
+:root{
+  --bg:#eceff4; --card:#fff; --ink:#151f2b; --ink2:#3d4c5c; --muted:#6b7c90;
+  --line:#dbe2ea; --line2:#eef2f6;
+  --brand:#1f6feb; --brand-d:#1552b8; --brand-bg:#e8f1ff;
+  --ok:#0f7a3d; --ok-bg:#e9f8ee;
+  --warn:#a35b06; --warn-bg:#fff5e6;
+  --bad:#b3261e; --bad-bg:#fdeceb;
+  --r:10px; --r-s:7px;
+  --sh:0 1px 2px rgba(21,31,43,.06), 0 4px 14px rgba(21,31,43,.06);
+  --mono:ui-monospace,"Cascadia Mono",Consolas,"Courier New",monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font-size:15px; line-height:1.5;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+  -webkit-text-size-adjust:100%;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:#c3ccd7;border-radius:9px}
+
+/* 顶栏 */
+.topbar{
+  position:sticky;top:0;z-index:30;background:#1b2735;color:#fff;
+  padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));
+  display:flex;align-items:center;gap:10px;
+}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:.3px;white-space:nowrap}
+.brand .mark{width:26px;height:26px;border-radius:7px;flex:0 0 auto;background:linear-gradient(135deg,#4b9bff,#1f6feb);display:grid;place-items:center;font-size:14px}
+.brand .tx{display:none}
+@media (min-width:560px){.brand .tx{display:inline}}
+.topbar .spacer{flex:1}
+.tb-file{
+  display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.16);border-radius:999px;
+  padding:5px 11px;font-size:12.5px;max-width:44vw;overflow:hidden;
+}
+.tb-file .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-file .dot{width:6px;height:6px;border-radius:50%;background:#4ade80;flex:0 0 auto}
+.btn-ghost{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:6px 11px;font-size:13px;white-space:nowrap}
+.btn-ghost:hover{background:rgba(255,255,255,.2)}
+
+/* 只在窄屏出现，走 CSS 而不是 JS 监听 resize —— 监听会跟视口脱节 */
+.role-tip{display:none;gap:9px;align-items:flex-start;background:#fff8e8;border-bottom:1px solid #f0dcae;color:#6b4a05;padding:9px 14px;font-size:12.5px}
+.role-tip b{color:#8a5a00}
+@media (max-width:899px){.role-tip{display:flex}}
+
+/* 骨架 */
+.shell{display:block;max-width:1400px;margin:0 auto}
+.rail{display:none}
+main{padding:14px 14px 92px}
+@media (min-width:900px){
+  .shell{display:grid;grid-template-columns:212px 1fr;gap:0;align-items:start;padding:0 16px 24px}
+  .rail{display:flex;flex-direction:column;gap:3px;position:sticky;top:58px;padding:16px 0;height:calc(100vh - 58px)}
+  main{padding:16px 0 40px 20px;min-width:0}
+  .tabbar{display:none !important}
+  .role-tip{margin:0 -16px;padding-left:30px}
+}
+.rail-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-s);border:0;background:transparent;color:var(--ink2);font-size:14px;text-align:left;width:100%}
+.rail-item svg{flex:0 0 auto;opacity:.75}
+.rail-item:hover{background:#e3e8ef}
+.rail-item.on{background:var(--card);color:var(--brand);font-weight:650;box-shadow:var(--sh)}
+.rail-item.on svg{opacity:1}
+.rail-note{margin-top:auto;font-size:11.5px;color:var(--muted);padding:10px 12px;border-top:1px dashed var(--line);line-height:1.6}
+
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.tabbar button{flex:1;border:0;background:transparent;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:var(--muted);padding:6px 2px}
+.tabbar button.on{color:var(--brand)}
+.tabbar .badge{position:absolute;transform:translate(13px,-10px);background:var(--bad);color:#fff;border-radius:999px;font-size:10px;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 4px}
+
+/* 卡片 */
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
+.card-h{display:flex;align-items:center;gap:9px;padding:13px 15px;border-bottom:1px solid var(--line2);font-weight:650;font-size:14.5px;flex-wrap:wrap}
+.card-h .step{width:21px;height:21px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:12px;flex:0 0 auto;font-weight:700}
+.card-h .spacer{flex:1}
+.card-h .hint{font-weight:400;font-size:12px;color:var(--muted)}
+.card-b{padding:14px 15px}
+.sub{font-size:12.5px;color:var(--muted);line-height:1.65}
+.page-title{font-size:19px;font-weight:700;margin:2px 0 4px}
+.page-sub{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+
+.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--ink2)}
+.btn:hover{border-color:#c3ccd7}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.pri:hover{background:var(--brand-d)}
+.btn.block{width:100%;min-height:46px;font-size:15px}
+.btn.sm{padding:6px 10px;font-size:12.5px;font-weight:500}
+
+.tag{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:2px 7px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.warn{background:var(--warn-bg);color:var(--warn)}
+.tag.bad{background:var(--bad-bg);color:var(--bad)}
+.tag.info{background:var(--brand-bg);color:var(--brand-d)}
+.tag.gray{background:#eef1f5;color:var(--muted)}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;color:var(--ink2);display:inline-flex;align-items:center;gap:6px}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.chip.sel{background:var(--brand-bg);border-color:#a9c8f5;color:var(--brand-d);font-weight:600}
+.chip .x{opacity:.55;font-size:14px;line-height:1}
+.chip .x:hover{opacity:1}
+.chip.add{border-style:dashed;color:var(--muted)}
+.picked{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:30px}
+
+/* 数据源 */
+.filecard{background:linear-gradient(160deg,#22303f,#18242f);color:#fff;border-radius:var(--r);padding:15px;margin-bottom:12px;box-shadow:var(--sh)}
+.filecard .fn{font-weight:700;font-size:15.5px;word-break:break-all;line-height:1.35}
+.filecard .meta{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.filecard .meta span{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);border-radius:6px;padding:3px 9px;font-size:12px}
+
+.banner{display:flex;gap:10px;padding:12px 14px;border-radius:var(--r);margin-bottom:12px;font-size:13px;line-height:1.6;align-items:flex-start}
+.banner .ic{flex:0 0 auto;font-size:16px;line-height:1.35}
+.banner.ok{background:var(--ok-bg);color:#0c5c2e;border:1px solid #bfe6cd}
+.banner.warn{background:var(--warn-bg);color:#7a4403;border:1px solid #f2ddb4}
+.banner .lnk{color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:2px;background:none;border:0;padding:0}
+
+/* 主力表卡 */
+.hero{
+  border:2px solid var(--brand);border-radius:var(--r);background:#fff;margin-bottom:12px;
+  box-shadow:0 2px 4px rgba(31,111,235,.10), 0 8px 22px rgba(31,111,235,.10);overflow:hidden;
+}
+.hero-h{display:flex;align-items:center;gap:9px;padding:12px 15px;background:linear-gradient(135deg,#1f6feb,#1552b8);color:#fff;flex-wrap:wrap}
+.hero-h .nm{font-weight:700;font-size:15.5px}
+.hero-h .tag{background:rgba(255,255,255,.2);color:#fff}
+.hero-b{padding:13px 15px}
+.hero-b .role{font-size:13px;line-height:1.7;color:var(--ink2);margin-bottom:11px}
+.facts{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.facts span{background:#f3f6fa;border:1px solid var(--line2);border-radius:6px;padding:3px 9px;font-size:12px;color:var(--ink2)}
+.facts span b{font-family:var(--mono);font-weight:700}
+.cols-preview{display:flex;flex-wrap:wrap;gap:5px}
+.cols-preview span{font-size:11.5px;background:#eef3fa;color:#3a5a80;border-radius:5px;padding:2px 7px;font-family:var(--mono)}
+.cols-preview span.hl{background:var(--brand-bg);color:var(--brand-d);font-weight:700}
+
+/* 表头探测示意 */
+.hdr-demo{font-family:var(--mono);font-size:11.5px;line-height:1.85;overflow-x:auto;padding:10px 12px;background:#fbfcfe;border-radius:8px;border:1px solid var(--line2)}
+.hdr-demo .r1{color:#98a6b6}
+.hdr-demo .r2{color:var(--ok);font-weight:700}
+.hdr-demo .r3{color:var(--brand);font-weight:700}
+.hdr-demo .r4{color:var(--ink2)}
+
+/* 分组列表 */
+.grp{display:flex;align-items:center;gap:11px;padding:12px 15px;border-bottom:1px solid var(--line2);width:100%;background:none;border-left:0;border-right:0;border-top:0;text-align:left}
+.grp:last-child{border-bottom:0}
+.grp:hover{background:#f7f9fc}
+.grp .cube{width:34px;height:34px;border-radius:8px;flex:0 0 auto;display:grid;place-items:center;background:var(--brand-bg);color:var(--brand-d);font-size:15px}
+.grp .nm{font-weight:650;font-size:14px}
+.grp .ds{font-size:12px;color:var(--muted);margin-top:1px}
+.grp .arw{color:#aab6c4;font-size:13px;transition:transform .15s}
+.grp.open .arw{transform:rotate(90deg)}
+.grp-body{border-bottom:1px solid var(--line2);background:#fafbfd;padding:4px 0}
+.grp-body:last-child{border-bottom:0}
+.tbl-row{display:flex;align-items:center;gap:9px;padding:8px 15px 8px 60px;font-size:13px;flex-wrap:wrap}
+.tbl-row:hover{background:#f1f5fa}
+.tbl-row .n{font-size:11.5px;color:var(--muted);background:#eef1f5;border-radius:5px;padding:1px 6px;font-family:var(--mono)}
+
+/* 统计 */
+.tpl-scroll{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;-webkit-overflow-scrolling:touch}
+.tpl-scroll::-webkit-scrollbar{display:none}
+.tpl{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 13px;font-size:13px;white-space:nowrap;font-weight:600;color:var(--ink2)}
+.tpl:hover{border-color:var(--brand);color:var(--brand)}
+.tpl small{display:block;font-weight:400;font-size:11px;opacity:.7;margin-top:1px;color:var(--muted)}
+
+.field-label{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:8px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.field+.field{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line)}
+.srctog{display:flex;gap:8px;flex-wrap:wrap}
+.srctog button{flex:1 1 190px;text-align:left;border:1.5px solid var(--line);background:#fff;border-radius:var(--r-s);padding:11px 13px;line-height:1.5}
+.srctog button .t{font-weight:700;font-size:14px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.srctog button .d{font-size:12px;color:var(--muted);margin-top:3px}
+.srctog button.on{border-color:var(--brand);background:var(--brand-bg)}
+.srctog button.on .t{color:var(--brand-d)}
+
+.cond{display:flex;gap:6px;align-items:center;margin-bottom:7px;flex-wrap:wrap}.cond select,.cond input{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:13px;background:#fff;color:var(--ink);max-width:100%}
+.cond select{flex:1 1 96px;min-width:0}
+.cond input{flex:1 1 88px;min-width:0}
+.cond .rm{border:0;background:none;color:#aab6c4;font-size:17px;padding:0 3px}
+.cond .rm:hover{color:var(--bad)}
+
+.opt-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.opt-row select{border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:13px;background:#fff;color:var(--ink);flex:1 1 148px;min-width:0;max-width:100%}
+.opt-row select:disabled{background:#f3f6fa;color:var(--muted)}
+.sw{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink2);cursor:pointer;white-space:nowrap;user-select:none}
+.sw input{width:17px;height:17px;accent-color:var(--brand);margin:0;flex:0 0 auto}
+.grain{display:inline-flex;background:#e3e8ef;border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.grain button{border:0;background:transparent;border-radius:6px;padding:6px 11px;font-size:12.5px;font-weight:600;color:var(--ink2);white-space:nowrap;min-height:32px}
+.grain button.on{background:#fff;color:var(--brand);box-shadow:0 1px 3px rgba(21,31,43,.12)}
+
+.go-wrap{margin-top:6px}.sticky-go{position:sticky;bottom:70px;z-index:20}
+@media (min-width:900px){.sticky-go{position:static;max-width:340px;margin-left:auto;display:block}}
+
+.link-box{border:1px solid var(--line);border-radius:var(--r-s);padding:11px;background:#fafbfd}
+.link-box .hd{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:600;margin-bottom:9px;flex-wrap:wrap}
+.link-sql{font-family:var(--mono);font-size:12px;background:#1b2735;color:#c9e0ff;border-radius:7px;padding:9px 11px;overflow-x:auto;white-space:pre;line-height:1.75}
+.link-sql b{color:#ffd479;font-weight:600}
+
+/* 结果 */
+.answer{background:linear-gradient(160deg,#1f6feb,#1552b8);color:#fff;border-radius:var(--r);padding:15px;margin-bottom:12px;box-shadow:var(--sh);font-size:14.5px;line-height:1.7}
+.answer .t{font-size:12px;opacity:.8;margin-bottom:6px;letter-spacing:.4px}
+.answer b{background:rgba(255,255,255,.2);border-radius:4px;padding:1px 6px;font-weight:650}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:12px}
+@media (min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--card);border-radius:var(--r);padding:12px 13px;box-shadow:var(--sh)}
+.kpi .k{font-size:11.5px;color:var(--muted);margin-bottom:3px}
+.kpi .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .v small{font-size:12px;font-weight:500;color:var(--muted);margin-left:2px}
+.kpi .d{font-size:11.5px;margin-top:2px;color:var(--muted)}
+.kpi .d.dn{color:var(--bad)} .kpi .d.up{color:var(--ok)}
+
+.segmented{display:flex;background:#e3e8ef;border-radius:9px;padding:3px;margin-bottom:12px}
+.segmented button{flex:1;border:0;background:transparent;border-radius:7px;padding:8px 4px;font-size:13px;font-weight:600;color:var(--ink2)}
+.segmented button.on{background:#fff;color:var(--brand);box-shadow:0 1px 3px rgba(21,31,43,.12)}
+
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.rt{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+table.rt th,table.rt td{padding:9px 11px;text-align:left;border-bottom:1px solid var(--line2)}
+table.rt thead th{background:#f3f6fa;font-size:12px;color:var(--ink2);font-weight:700;position:sticky;top:0;z-index:2}
+table.rt td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px}
+table.rt tbody tr:hover{background:#f7f9fc}
+table.rt tbody tr.bad td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+table.rt tbody tr.warn td:first-child{box-shadow:inset 3px 0 0 #e0a52c}
+table.rt tfoot td{background:#f3f6fa;font-weight:700}
+
+.bars{padding:14px 15px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.bar-row .lb{flex:0 0 76px;font-size:12.5px;text-align:right;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-row .tr{flex:1;height:22px;background:#eef1f5;border-radius:6px;overflow:hidden;min-width:50px}
+.bar-row .fl{height:100%;background:linear-gradient(90deg,#4b9bff,#1f6feb);border-radius:6px;transition:width .35s}
+.bar-row .fl.bad{background:linear-gradient(90deg,#f0776b,#d63b2c)}
+.bar-row .vl{flex:0 0 64px;font-size:12.5px;font-family:var(--mono);color:var(--ink2)}
+
+.export{display:flex;flex-wrap:wrap;gap:8px;padding:12px 15px;border-top:1px solid var(--line2);background:#fafbfd}
+
+/* 校验 */
+.rule-h{display:flex;align-items:center;gap:10px;padding:12px 15px;background:#f7f9fc;font-size:12.5px;font-weight:700;color:var(--ink2);border-top:1px solid var(--line2)}
+.rule-h:first-child{border-top:0}
+.rule{display:flex;align-items:flex-start;gap:11px;padding:12px 15px;border-top:1px solid var(--line2);width:100%;background:none;border-left:0;border-right:0;text-align:left}
+.rule:hover{background:#f7f9fc}
+.rule .cbx{width:18px;height:18px;border-radius:5px;border:1.5px solid #b8c6d6;flex:0 0 auto;margin-top:1px;display:grid;place-items:center;font-size:12px;color:#fff;background:#fff}
+.rule.on .cbx{background:var(--brand);border-color:var(--brand)}
+.rule .bd{flex:1;min-width:0}
+.rule .tt{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.rule .dd{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.55}
+.finding{background:#fbfcfe;border-top:1px solid var(--line2)}
+.finding .fr{display:flex;gap:10px;align-items:baseline;padding:7px 15px 7px 44px;font-size:12.5px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.finding .fr:last-child{border-bottom:0}
+.finding .loc{font-family:var(--mono);font-size:11.5px;color:var(--brand);flex:0 0 auto}
+.finding .bad-v{font-family:var(--mono);background:var(--bad-bg);color:var(--bad);border-radius:4px;padding:0 5px}
+
+/* 下钻：交叉表的行标签可点 */
+table.rt td.drill{cursor:pointer;color:var(--brand-d);font-weight:650;text-decoration:underline dotted;text-underline-offset:3px}
+table.rt td.drill:hover{background:var(--brand-bg)}
+table.rt td.drill.on{background:var(--brand);color:#fff;box-shadow:none}
+table.rt td.drill.on::after{content:' ▾'}
+.cond input[type=date]{flex:1 1 130px;font-family:var(--mono);font-size:12.5px}
+
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty .e{font-size:34px;margin-bottom:10px;opacity:.5}
+
+/* ============================================================
+   导入区 + 工作表列表
+   ============================================================ */
+.drop{border:2px dashed #b8c6d6;border-radius:var(--r);background:#fff;padding:22px 16px;text-align:center;margin-bottom:12px;cursor:pointer}
+.drop:hover,.drop.over{border-color:var(--brand);background:var(--brand-bg)}
+.drop .di{font-size:30px;margin-bottom:6px;line-height:1}
+.drop .dt{font-weight:700;font-size:15px}
+.drop .ds{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.65}
+.bar{height:6px;background:#e3e8ef;border-radius:6px;overflow:hidden;margin:14px auto 7px;max-width:440px}
+.bar i{display:block;height:100%;background:var(--brand);transition:width .2s}
+.pt{font-size:12px;color:var(--muted)}
+.perr{font-size:12.5px;color:var(--bad);background:var(--bad-bg);border-radius:8px;padding:10px 12px;margin-top:12px;text-align:left;line-height:1.6}
+
+.search{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-size:13.5px;font-family:inherit;color:var(--ink)}
+.srow{display:flex;align-items:center;gap:9px;padding:11px 15px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+.srow:last-child{border-bottom:0}
+.srow:hover{background:#f7f9fc}
+.srow.on{background:var(--brand-bg);box-shadow:inset 3px 0 0 var(--brand)}
+.srow.dead{opacity:.45;cursor:default}
+.srow .dot{width:14px;height:14px;border-radius:50%;border:2px solid #b8c6d6;flex:0 0 auto}
+.srow.on .dot{border-color:var(--brand);background:var(--brand);box-shadow:inset 0 0 0 3px #fff}
+.srow .sn{font-weight:650;font-size:14px}
+.srow .sm{font-size:11.5px;color:var(--muted);font-family:var(--mono)}
+
+.curtable{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:linear-gradient(135deg,#1f6feb,#1552b8);color:#fff;border-radius:var(--r);padding:14px}
+.curtable .ct-l{flex:1 1 190px;min-width:0}
+.curtable .ct-n{font-weight:700;font-size:17px;word-break:break-all}
+.curtable .ct-m{font-size:12.5px;opacity:.85;margin-top:3px}
+.curtable .ct-r{text-align:right;display:flex;flex-direction:column;gap:9px;align-items:flex-end}
+.curtable .ct-k{font-size:12.5px;opacity:.92}
+.curtable .ct-k b{font-size:15px}
+.curtable .btn.sm{background:#fff;border-color:#fff;color:var(--brand-d);white-space:nowrap}
+.curtable .warn{color:#ffd479}
+@media (max-width:520px){.curtable .ct-r{align-items:flex-start;text-align:left}}
+
+/* ============================================================
+   打印 / 存为 PDF
+   ============================================================ */
+.print-head{display:none}
+@media print{
+  /* 只留「结果」页，其余导航、按钮、其它视图全部去掉 */
+  .topbar,.rail,.tabbar,.role-tip,.export,#resView,
+  #v-source,#v-stat,#v-check,.segmented,.scrollhint{display:none !important}
+  html,body{background:#fff}
+  body{font-size:10.5px;color:#000}
+  .shell{display:block;padding:0;max-width:none}
+  main{padding:0}
+  #v-result{display:block !important}
+  .page-title,.page-sub{display:none}
+  .print-head{display:block !important}
+  .print-head h1{font-size:16px;margin:0 0 6px}
+  .print-head .pm{font-size:9.5px;color:#444;line-height:1.7;margin-bottom:10px;
+    border-bottom:1px solid #ddd;padding-bottom:6px}
+  .card{box-shadow:none;border:1px solid #ccc;border-radius:0;margin-bottom:8px;overflow:visible}
+  .card-h{border-bottom:1px solid #ddd;background:#f5f7fa;padding:6px 8px;font-size:11px}
+  .answer{background:#fff !important;color:#000;border:1px solid #ccc;padding:8px;font-size:11px}
+  .answer .t{color:#666;opacity:1}
+  .answer b{background:none;color:#000;font-weight:700;padding:0}
+  .kpis{grid-template-columns:repeat(4,1fr);gap:6px}
+  .kpi{box-shadow:none;border:1px solid #ccc;padding:6px 8px}
+  .kpi .v{font-size:15px}
+  .tw{overflow:visible !important}
+  table.rt{font-size:9px;white-space:normal}
+  table.rt thead{display:table-header-group}
+  table.rt thead th{position:static;background:#eef3fa !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  table.rt tr{break-inside:avoid;page-break-inside:avoid}
+  table.rt th,table.rt td{border:0.5pt solid #b5b5b5;padding:2px 4px}
+  table.rt td.drill{color:#000;text-decoration:none;font-weight:600}
+  table.rt td.drill.on{background:#eef3fa !important;color:#000}
+  table.rt td.drill.on::after{content:''}
+  tr.bad td:first-child,tr.warn td:first-child{box-shadow:none !important}
+  tr.bad{background:#fdeceb !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tr.warn{background:#fff8e8 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  @page{size:A4 landscape;margin:10mm}
+}
+</style>
+</head>
+<body>
+
+<script>
+/* 自检：任何脚本错误直接显示在页面顶部，不要静默白屏 */
+window.addEventListener('error', function (ev) {
+  var d = document.createElement('div');
+  d.style.cssText = 'background:#b3261e;color:#fff;padding:10px 14px;font:13px/1.6 monospace';
+  d.textContent = '启动出错：' + ev.message + '  @' + (ev.lineno || '?');
+  document.body.insertBefore(d, document.body.firstChild);
+});
+</script>
+
+<header class="topbar">
+  <div class="brand"><span class="mark">▦</span><span class="tx">模具车间表格统计器</span></div>
+  <div class="spacer"></div>
+  <div class="tb-file" title="2026年生产计划表) - 副本.xlsx">
+    <span class="dot"></span><span class="nm">2026年生产计划表) - 副本.xlsx</span>
+  </div>
+  <button class="btn-ghost" id="btnOpen">换文件</button>
+</header>
+
+<div class="role-tip" id="roleTip">
+  <span class="ic">📱</span>
+  <div>
+    <b>手机适合「看结果」，不适合「读大文件」。</b>
+    这份表 62&nbsp;MB，手机上解析要等很久。建议电脑上导入、建好统计，
+    手机只用来查看和转发 —— 右上角可扫码打开电脑端生成的报表。
+  </div>
+</div>
+
+<div class="shell">
+  <nav class="rail" id="rail"></nav>
+
+  <main>
+    <!-- ══════════ ① 数据源 ══════════ -->
+    <section id="v-source"></section>
+
+    <!-- ══════════ ② 统计 ══════════ -->
+    <section id="v-stat" hidden>
+      <div class="page-title">做统计</div>
+      <div class="page-sub">默认就是「<b>每月每人装配量</b>」。想换口径，自己改时间粒度、分组列、指标就行。</div>
+
+      <div class="tpl-scroll" id="tplList"></div>
+
+      <div class="card">
+        <div class="card-h">
+          <span class="step">1</span><span>看哪张表</span>
+          <span class="spacer"></span><span class="hint">决定一行代表什么</span>
+        </div>
+        <div class="card-b">
+          <div class="srctog" id="srcTog"></div>
+          <div class="sub" id="srcNote" style="margin-top:11px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <span class="step">2</span><span>按什么分组</span>
+          <span class="spacer"></span><span class="hint">时间 × 人／客户／班组</span>
+        </div>
+        <div class="card-b">
+          <div class="picked" id="groupPicked"></div>
+          <div class="field" style="margin-top:12px">
+            <div class="field-label">时间维度 <span class="tag info">按天 ／ 周 ／ 月 ／ 季度 ／ 年</span></div>
+            <div id="timeBox"></div>
+          </div>
+          <div class="field">
+            <div class="field-label">其他分组列 <span class="tag gray">只列取值重复度高的</span></div>
+            <div class="chips" id="groupPool"></div>
+            <div id="splitBox" style="margin-top:12px"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <span class="step">3</span><span>算什么指标</span>
+          <span class="spacer"></span><span class="hint">已按列类型推荐</span>
+        </div>
+        <div class="card-b">
+          <div class="picked" id="metricPicked"></div>
+          <div class="field" style="margin-top:12px">
+            <div class="field-label">可加指标</div>
+            <div class="chips" id="metricPool"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="step">4</span><span>只看哪些</span><span class="spacer"></span><span class="hint">留空＝全部</span></div>
+        <div class="card-b">
+          <div id="condList"></div>
+          <button class="btn sm" id="addCond">+ 加一个条件</button>
+          <div class="sub" style="margin-top:10px">
+            取值都是从表里读出来的 —— 「客户名称」只会列出宏昌 / 恒合 / 天驰 / 莱伦…，不会让你手打错字。
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="linkCard">
+        <div class="card-h"><span class="step">5</span><span>和另一张表联动</span><span class="spacer"></span><span class="hint">可选，但很有用</span></div>
+        <div class="card-b">
+          <div class="link-box">
+            <div class="hd">
+              <span class="tag info" id="linkState">已开启</span>
+              <span id="linkTitle"></span>
+              <span style="flex:1"></span>
+              <button class="btn sm" id="toggleLink">关闭</button>
+            </div>
+            <div class="sub" id="linkWhy" style="margin-bottom:9px"></div>
+            <div class="link-sql" id="linkSql"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="go-wrap"><button class="btn pri block sticky-go" id="runStat">开始统计</button></div>
+    </section>
+
+    <!-- ══════════ ③ 结果 ══════════ -->
+    <section id="v-result" hidden>
+      <div class="page-title">结果</div>
+      <div class="page-sub" id="resSub">—</div>
+      <div class="print-head" id="printHead"></div>
+
+      <div class="answer" id="resAnswer"></div>
+      <div class="kpis" id="resKpis"></div>
+
+      <div class="segmented" id="resView">
+        <button data-rv="table" class="on">明细表</button>
+        <button data-rv="bar">排行图</button>
+        <button data-rv="pivot">交叉表</button>
+      </div>
+
+      <div class="card">
+        <div id="resTableWrap" class="tw"></div>
+        <div id="resBarWrap" class="bars" hidden></div>
+        <div id="resPivotWrap" class="tw" hidden></div>
+        <div class="export">
+          <button class="btn pri" id="expPng">导出图片（.png）</button>
+          <button class="btn" id="expXlsx">导出 Excel（.xlsx）</button>
+          <button class="btn" id="expPdf">打印 / 存为 PDF</button>
+          <button class="btn" id="expCsv">导出 CSV</button>
+          <span style="flex:1"></span>
+          <button class="btn" id="expTpl">存成模板</button>
+        </div>
+        <div class="sub" style="padding:0 15px 14px">
+          <b>图片</b>直接把当前结果画成一张图，发微信群、贴车间看最方便（在「排行图」页导出的就是柱状图）。<br>
+          <b>Excel</b> 带两张表：汇总 + 明细（不受屏上 200 行限制）。<br>
+          <b>PDF</b> 走系统打印对话框选「另存为 PDF」—— 中文不会乱码，A4 横向已排好版。
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <span>装配明细</span>
+          <span class="spacer"></span>
+          <span class="hint" id="detailHint"></span>
+          <button class="btn sm" id="detailClear" hidden>看全部</button>
+        </div>
+        <div class="tw" id="resDetail"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span>这张结果怎么算出来的</span></div>
+        <div class="card-b">
+          <div class="link-sql" id="resSql"></div>
+          <div class="sub" style="margin-top:11px">
+            存成模板后，下个月把新表拖进来，点一下同一个模板就直接出结果。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ ④ 校验 ══════════ -->
+    <section id="v-check" hidden>
+      <div class="page-title">校验</div>
+      <div class="page-sub">先把坑找出来，免得统计完才发现数字不对。</div>
+
+      <div class="banner warn">
+        <span class="ic">!</span>
+        <div>在两张主力表上发现 <b>9 类问题、共 296 处</b>。带 <b>红色</b> 的会直接影响统计结果。</div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span>校验规则</span><span class="spacer"></span><button class="btn sm" id="toggleAll">全选</button></div>
+        <div id="ruleList"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<nav class="tabbar" id="tabbar"></nav>
+
+<script>
+'use strict';
+/* ==========================================================================
+   演示数据 —— 结构、列名、真实异常均取自对样本文件的探查
+   （tools/probe-sheets.js 产出，见 tools/_probe/*.txt）
+   ========================================================================== */
+
+var FILE_NAME = '2026年生产计划表) - 副本.xlsx';
+
+var ICON = {
+  grid:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>',
+  calc:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 7h8M8 12h2M12 12h2M16 12h.01M8 16h2M12 16h2M16 16h.01"/></svg>',
+  chart:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><rect x="6" y="10" width="3.4" height="8"/><rect x="12" y="5" width="3.4" height="13"/><rect x="18" y="14" width="3.4" height="4"/></svg>',
+  check:'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'
+};
+
+/* ---------- 总计划表（订单级，26 行；注释 * 的是样本里的真实数据） ---------- */
+var ORDERS = [
+  // 订单编号, 模具编号, 客户, 设计, 班组, 接单, 计划交模, 实际交模, 套数, 备注
+  ['2601','260101-13','宏昌','黄石长','A/B/C','2025-12-17','2026-01-08','2026-03-31',13,'新模具'],   // *
+  ['2602','260201','恒合','罗俊','B','2025-12-17','2026-01-08','2026-01-08',1,'改模具'],              // *
+  ['2603','260301-04','天驰','罗承志','A','2025-12-22','2026-01-06','2026-01-09',1,'改模具'],          // *
+  ['2604','260401-04','宏昌','罗承志','C','2025-12-22','2026-01-08','2026-02-06',4,'新模具+改模'],    // *
+  ['2605','260501-02','恒合','黄石长','B','2025-12-22','2026-01-05','2026-01-15',2,'新模具'],         // *
+  ['2606','260601-23','恒合','志/黄','A/B','2025-12-22','2026-01-17','',23,'改模'],                   // * 未交模
+  ['2607','260701','莱伦','罗承志','A','2025-12-27','2026-01-06','2026-01-06',1,'改模具'],            // *
+  ['2608','260801-50','奥达','黄石长','B','2026-01-05','2026-01-20','2026-01-18',50,'新模具'],
+  ['2609','260901-06','爱美特','林朝俊','C','2025-12-22','2026-01-15','2026-01-16',6,'新模具'],
+  ['2610','261001/257011','恒合','罗俊','A','2026-01-14','2026-02-02','2026-02-05',1,'改模具'],
+  ['2611','261101-04','诚毅','黄石长','A','2026-01-09','2026-01-20','2026-01-23',4,'改模具'],
+  ['2612','261201-03','八达','罗俊','C','2026-01-20','2026-02-10','2026-03-05',3,'新模具'],
+  ['2613','261301','汇成','罗承志','C','2026-01-19','2026-02-22','2026-03-20',1,'改模'],
+  ['2614','261401-02','基隆','黄石长','A','2026-01-05','2026-01-25','2026-01-29',2,'改模'],
+  ['2615','261501','恒合','罗俊','C','2026-01-20','2026-02-28','2026-03-12',1,'改模具'],
+  ['2616','261601','派特','黄石长','B','2026-01-06','2026-02-05','2026-02-18',1,'改模'],
+  ['2617','261701','凯利','林朝俊','A','2026-01-13','2026-02-08','2026-02-10',1,'改模'],
+  ['2618','261801-06','诚毅','罗承志','A','2026-01-09','2026-02-02','2026-02-06',6,'改模具'],
+  ['2619','261901','天驰','覃铭海','A','2026-02-03','2026-02-25','2026-03-11',1,'新模具'],
+  ['2620','262001-03','恒合','黄石长','A','2026-02-25','2026-03-15','2026-03-19',3,'新模具'],
+  ['2621','262101-05','德力','覃铭海','B','2026-02-10','2026-03-22','2026-03-22',5,'改模具'],
+  ['2622','262201','奥达','罗俊','A','2026-02-02','2026-03-12','2026-03-25',1,'新模具'],
+  ['2623','262301-04','宏昌','黄石长','C','2026-02-25','2026-03-16','2026-04-11',4,'改模具'],
+  ['2624','262401-09','恒合','黄石长','A','2026-03-18','2026-04-08','2026-04-08',9,'新模具'],
+  ['2625','262501-02','博斯','黄石长','C','2026-03-25','2026-04-20','2026-04-24',2,'新模具'],
+  ['2626','262601-04','天驰','罗承志','A','2026-03-11','2026-04-08','',4,'新模具']                     // 未交模
+];
+var toDate = function (s){ return s ? new Date(s + 'T00:00:00') : null; };
+var daysBetween = function (a, b){ return Math.round((b - a) / 86400000); };
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+function ymd(d){ return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function addDays(d, n){ return new Date(d.getTime() + n * 86400000); }
+
+/* ---------- 人员 / 零件 名称池（取自截图里的真实值） ---------- */
+var GX = ['落料冲孔模','打沙拉','折弯','成型1','成型2','打斜','拍平','压毛刺模','翻边',
+          '切边冲孔','拉伸模','铆接模','冲大孔','折V模','精冲','压苞落料','连续模1出1'];
+var XIEGE = ['举豪','安皓','博峰','龙达','宝煊','杨和','创虹','侗创'];
+/* 截图 Q 列的真实装配人 */
+var ZHUANGPEI = ['莫宗源','李千军','郑炳金','朱锦锦','覃建家','陈祖裕',
+                 '马毅玲','黄成栋','覃志坚','成凌平','李什和','黄德健'];
+var PARTS = ['边勾板','横梁','上盖','底板','侧板','前面板','支架','导轨','铰链','拉杆组件',
+             '隔热板','控制面板','门板','燃烧室','通风板','电器盒盖','中铰链','上铰链','下铰链'];
+var CUSTOMERS = ['恒合','天驰','宏昌','奥达','德力','爱美特','派特','诚毅','汇成','八达','莱伦','基隆','凯利','博斯'];
+/* WF 后缀在真实表里存在（黄石长 / 黄石长WF 同时出现）—— 校验里会单独提 */
+var DESIGNERS = ['黄石长','罗承志','罗俊','林朝俊','覃铭海','赖梅生','黄石长WF','罗承永WF'];
+var BANZUS = ['A','B','C'];
+var TYPES = ['新模具','改模具','改模具','新模具','新模具+改模'];
+
+/* 固定种子的伪随机：每次刷新数据一致，便于对照 */
+var _seed = 20260401;
+function rnd(){ _seed = (_seed * 1103515245 + 12345) % 2147483648; return _seed / 2147483648; }
+function pick(a){ return a[Math.floor(rnd() * a.length)]; }
+function matCode(){
+  var r = Math.floor(rnd() * 3);
+  if (r === 0) return 'A2021-' + (100 + Math.floor(rnd() * 400));
+  if (r === 1) return 'N590-10008' + (600 + Math.floor(rnd() * 90));
+  return 'IKWH240-' + pick(['DH','QD','CP']) + '-' + pad2(1 + Math.floor(rnd() * 9));
+}
+
+/* 样本里只到 4 月，这里再补 5–9 月，让「按月」趋势完整 */
+var EXTRA_ORDERS = [];
+(function (){
+  var n = 2627;
+  ['2026-05','2026-06','2026-07','2026-08','2026-09'].forEach(function (mo, mi){
+    for (var j = 0; j < 5; j++){
+      var cnt = 1 + Math.floor(rnd() * 8);
+      var first = toDate(mo + '-01');
+      var recv = ymd(addDays(first, -8 - Math.floor(rnd() * 14)));
+      var plan = ymd(addDays(first, 6 + j * 4 + Math.floor(rnd() * 4)));
+      var real = rnd() < 0.8 ? ymd(addDays(toDate(plan), Math.floor(rnd() * 21) - 5)) : '';
+      var code = String(n++);
+      EXTRA_ORDERS.push([code, code + '01-' + pad2(cnt), pick(CUSTOMERS), pick(DESIGNERS),
+                         pick(BANZUS), recv, plan, real, cnt, pick(TYPES)]);
+    }
+  });
+})();
+
+/* 样本里真实存在的零件名称，按订单编号对上 */
+var REAL_PART = {
+  '2601':'4个拉杆组件CE-BCD335WX-JQ','2602':'GD颗粒炉送料器外壳-2','2603':'电器盒41211-000127',
+  '2604':'左/右限位块','2605':'2B&3B控制面板','2606':'24/36前侧台','2607':'N590-10008610 边台板',
+  '2608':'CKZ26C','2609':'前面板','2610':'传火盒底板','2611':'箱体支架/箱体加强条','2612':'电辅热盖板',
+  '2613':'A2021-103 上铰链','2614':'右侧板/右内垫板','2615':'电机支架MHT-400DJ02','2616':'BG53',
+  '2617':'风道固定板','2618':'电器盒盖','2619':'后门锁环固定板','2620':'红坦克-27款左边炉侧台-SS',
+  '2621':'左/右前纵梁通道下连接板','2622':'炉体左侧板','2623':'上门右拉杆组件',
+  '2624':'红坦克-27款左固定侧台-SS','2625':'美式风管机','2626':'电器盒41211-000128'
+};
+
+/* 真实数据里出现过的时间倒挂，原样保留 —— 这正是校验要抓的东西 */
+var MASTER_ROWS = ORDERS.concat(EXTRA_ORDERS).map(function (o){
+  var plan = toDate(o[6]), real = toDate(o[7]);
+  return {
+    订单编号:o[0], 模具编号:o[1], 客户名称:o[2], 设计:o[3], 生产班组:o[4],
+    零件名称:REAL_PART[o[0]] || pick(PARTS),
+    接单日期:o[5], 计划交模日期:o[6], 实际交模日期:o[7] || '',
+    模具套数:o[8], 模具类型:o[9],
+    交模月份:(o[6] || '').slice(0, 7),
+    延期天数:real ? daysBetween(plan, real) : null,
+    已交货:!!real
+  };
+});
+
+/* ---------- 生产计划表（工序级）----------
+   真实表里：一个「模具编号」下挂多道工序，所以模具编号会重复出现。
+   这里按【订单 → 模具 → 工序】三层展开，装配人是按模具定的（一个人负责整套模具的装配）。 */
+var PLAN_ROWS = [];
+MASTER_ROWS.forEach(function (o){
+  var planDie = toDate(o.计划交模日期);
+  if (!planDie) return;
+  var planAsm = addDays(planDie, -3);                                     /* 截止 = 计划装配完成 */
+  var base = parseInt(String(o.模具编号).replace(/\D/g, '').slice(0, 6), 10) || 260101;
+  var nDies = Math.min(6, Math.max(1, o.模具套数));                         /* 演示：每个订单展开前几套 */
+  for (var d = 0; d < nDies; d++){
+    var dieNo = String(base + d);
+    var part = pick(PARTS), mat = matCode();
+    var a1 = pick(ZHUANGPEI), a2 = pick(ZHUANGPEI);
+    var who = (rnd() < 0.08 && a1 !== a2) ? (a1 + '/' + a2) : a1;
+    var start = addDays(planAsm, -(3 + Math.floor(rnd() * 12)));           /* 开工 */
+    var dur = 2 + Math.floor(rnd() * 12);
+    var done = rnd() < 0.88;
+    var realAsm = done ? addDays(start, dur) : null;                       /* 完工 */
+    var ship = (done && rnd() < 0.88) ? addDays(realAsm, Math.floor(rnd() * 4)) : null;  /* 送样 */
+    var drawDay = addDays(toDate(o.接单日期), 2 + Math.floor(rnd() * 6));
+    var nProc = 2 + Math.floor(rnd() * 4);
+    for (var i = 1; i <= nProc; i++){
+      var late = rnd() < 0.18 ? 1 + Math.floor(rnd() * 3) : 0;
+      PLAN_ROWS.push({
+        订单编号:o.订单编号, 模具编号:dieNo,
+        客户名称:o.客户名称, 零件名称:part, 物料编码:mat,
+        工序:i, 工序名称:pick(GX),
+        设计:o.设计, 生产班组:o.生产班组, 设计延期:late,
+        下单时间:o.接单日期,
+        图纸下发:ymd(drawDay),
+        装配人:who,
+        装配开始时间:ymd(start),
+        计划装配完成时间:ymd(planAsm),
+        装配完成时间:realAsm ? ymd(realAsm) : '',
+        实际送样时间:ship ? ymd(ship) : '',
+        线割供应商:pick(XIEGE),
+        装配完成:done, 送样合格率:done ? (90 + Math.floor(rnd() * 11)) : null
+      });
+    }
+  }
+});
+
+/* ---------- 两张主力表的可统计维度 ---------- */
+var SRC = {
+  master:{
+    id:'master', name:'总计划表', kind:'订单级', rows:MASTER_ROWS, total:205,
+    desc:'一行 = 一套模具／一个订单。看 <b>交期</b>：谁按时交了、谁拖了多久、还欠多少套没发。',
+    note:'样本里共 205 条订单，这里演示其中 26 条（真实数据）。',
+    dims:[
+      { k:'客户名称', card:12, why:'12 个客户，最常用的口径' },
+      { k:'设计',     card:8,  why:'8 位设计员 —— 排工作量用', split:true },
+      { k:'生产班组', card:3,  why:'A/B/C 三个班组，看产线平衡', split:true },
+      { k:'模具类型', card:3,  why:'新模具 / 改模具 / 新模具+改模' }
+    ],
+    timeCols:[
+      { k:'接单日期',     t:'接单', why:'看这个月<b>接</b>了多少单' },
+      { k:'计划交模日期', t:'计划交', why:'看这个月<b>该交模</b>多少' },
+      { k:'实际交模日期', t:'实交', why:'看这个月<b>实际交模</b>多少 —— 最常用' }
+    ],
+    metrics:['订单数','模具套数','交模套数','平均延期天数','准交率','最长延期','未交模订单','平均交货周期'],
+    defaults:{ group:['客户名称'], metrics:['订单数','模具套数','平均延期天数','准交率'], time:null }
+  },
+  plan:{
+    id:'plan', name:'生产计划表', kind:'工序级', rows:PLAN_ROWS, total:1426,
+    desc:'一行 = 一道工序，同一「模具编号」下会挂多道工序。看 <b>装配现场</b>：谁装配的、什么时候开工、截止到哪天、实际哪天干完、哪天送样的。',
+    note:'样本 1 426 行；这里按【订单 → 模具 → 工序】展开成 ' + PLAN_ROWS.length + ' 行演示。',
+    dims:[
+      { k:'装配人',     card:12, why:'装配工个人工作量 —— 某段时间装配了多少', split:true },
+      { k:'零件名称',   card:19, why:'按零件看装配量' },
+      { k:'客户名称',   card:14, why:'按客户看' },
+      { k:'设计',       card:8,  why:'设计员 → 图纸下发及不及时', split:true },
+      { k:'生产班组',   card:3,  why:'A/B/C 班组产能', split:true },
+      { k:'线割供应商', card:8,  why:'外协线割分给了谁、做得多不多', split:true },
+      { k:'工序名称',   card:17, why:'哪种工序最常做' }
+    ],
+    /* tag = 这一列在工厂里的说法，直接显示给用户 */
+    timeCols:[
+      { k:'装配开始时间',     t:'开工', why:'看这个人这个月<b>开工</b>了多少活' },
+      { k:'计划装配完成时间', t:'截止', why:'看这个月<b>该交</b>多少（截止日）' },
+      { k:'装配完成时间',     t:'完工', why:'看这个月<b>实际干完</b>多少 —— 最常用' },
+      { k:'实际送样时间',     t:'送样', why:'看这个月<b>实际送出去</b>多少' },
+      { k:'图纸下发',         t:'出图', why:'看设计的<b>出图</b>节奏' },
+      { k:'下单时间',         t:'下单', why:'看订单<b>下单</b>节奏' }
+    ],
+    metrics:['装配套数','装配数量','平均装配工期','装配延期','按时完工率','最长装配延期',
+             '送样完成数','工序数','装配完成率','图纸及时率','设计延期合计','送样合格率'],
+    defaults:{ group:['装配人'], metrics:['装配套数','装配数量','按时完工率'],
+               time:{ col:'装配完成时间', grain:'month' } }
+  }
+};
+
+/* ---------- 指标定义 ---------- */
+function pct(n, d){ return d ? Math.round(n / d * 100) : 0; }
+function avg(a){ return a.length ? +(a.reduce(function (x, y){ return x + y; }, 0) / a.length).toFixed(1) : 0; }
+function uniq(a){ return a.filter(function (v, i){ return a.indexOf(v) === i; }); }
+/* 一格多值：A/B/C 拆开 */
+function multi(v){ return String(v == null ? '' : v).split(/[\/、,，]/).map(function (s){ return s.trim(); }).filter(Boolean); }
+
+/* 只对「已完工」的行算工期/延期，没完工的不能当成 0 天 */
+function doneRows(b){ return b.filter(function (r){ return r.装配完成时间; }); }
+function avgOf(b, fn){ return avg(doneRows(b).map(fn)); }
+function rateOf(b, fn){ var d = doneRows(b); return pct(d.filter(fn).length, d.length); }
+function maxOf(b, fn){ var x = doneRows(b).map(fn); return x.length ? Math.max.apply(null, x) : 0; }
+/* 装配工期 = 完工 − 开工；装配延期 = 完工 − 截止（正数＝拖了） */
+function asmDur(r){ return daysBetween(toDate(r.装配开始时间), toDate(r.装配完成时间)); }
+function asmLate(r){ return daysBetween(toDate(r.计划装配完成时间), toDate(r.装配完成时间)); }
+/* 今天当成数据里最后一天，否则「未完工」会算错 */
+var DATA_TODAY = '2026-09-22';
+
+/* ---------- 时间粒度 ---------- */
+var GRAINS = [
+  { k:'day',     n:'按天' },
+  { k:'week',    n:'按周' },
+  { k:'month',   n:'按月' },
+  { k:'quarter', n:'按季度' },
+  { k:'year',    n:'按年' }
+];
+var GRAIN_NAME = { day:'日期', week:'周次', month:'月份', quarter:'季度', year:'年份' };
+var DIM_TIME = '__time__';
+
+function weekOf(d){
+  var start = new Date(d.getFullYear(), 0, 1);
+  return Math.floor((Math.floor((d - start) / 86400000) + start.getDay()) / 7) + 1;
+}
+/* 把 'YYYY-MM-DD' 归到指定粒度；空值/非日期返回 null */
+function grainKey(dateStr, grain){
+  if (!dateStr) return null;
+  var s = String(dateStr);
+  if (s.length < 7 || s.indexOf('-') !== 4) return null;
+  var y = s.slice(0, 4), m = +s.slice(5, 7);
+  if (grain === 'day') return s;
+  if (grain === 'month') return y + '-' + pad2(m);
+  if (grain === 'quarter') return y + '-Q' + Math.ceil(m / 3);
+  if (grain === 'year') return y;
+  if (grain === 'week') return y + '-W' + pad2(weekOf(toDate(s)));
+  return s;
+}
+/* 表头用的短标签：2026-01 → 1月。非日期键（如「未填」）原样返回 */
+function grainShort(key, grain){
+  if (!key) return '—';
+  if (!/^\d{4}-/.test(key)) return key;
+  if (grain === 'month') return parseInt(key.slice(5, 7), 10) + '月';
+  if (grain === 'quarter' || grain === 'week' || grain === 'day') return key.slice(5);
+  return key;
+}
+
+var DEMO_METRIC_DEF = {
+  /* —— 总计划表 —— */
+  '订单数':      { f:function (b){ return uniq(b.map(function (r){ return r.订单编号; })).length; }, total:'sum', fmt:null, tip:'按订单编号去重' },
+  '模具套数':    { f:function (b){ return b.reduce(function (a, r){ return a + r.模具套数; }, 0); }, total:'sum', fmt:null, tip:'求和' },
+  '平均延期天数':{ f:function (b){ return avg(b.filter(function (r){ return r.已交货; }).map(function (r){ return r.延期天数; })); }, total:'avg', fmt:function (v){ return v + ' 天'; }, tip:'实际交模 − 计划交模，负数＝提前' },
+  '准交率':      { f:function (b){ var d = b.filter(function (r){ return r.已交货; }); return pct(d.filter(function (r){ return r.延期天数 <= 0; }).length, d.length); }, total:'rate', fmt:function (v){ return v + '%'; }, tip:'按时或提前交模的订单占比' },
+  '最长延期':    { f:function (b){ var x = b.filter(function (r){ return r.已交货; }).map(function (r){ return r.延期天数; }); return x.length ? Math.max.apply(null, x) : 0; }, total:'max', fmt:function (v){ return v + ' 天'; }, tip:null },
+  '未交模订单':  { f:function (b){ return b.filter(function (r){ return !r.已交货; }).length; }, total:'sum', fmt:null, tip:'实际交模日期还是空的' },
+  '交模套数':    { f:function (b){ return b.reduce(function (a, r){ return a + (r.已交货 ? r.模具套数 : 0); }, 0); }, total:'sum', fmt:null, tip:'已交模订单的套数求和' },
+  '平均交货周期':{ f:function (b){ return avg(b.filter(function (r){ return r.已交货; }).map(function (r){ return daysBetween(toDate(r.接单日期), toDate(r.实际交模日期)); })); }, total:'avg', fmt:function (v){ return v + ' 天'; }, tip:'接单到实际交模的天数' },
+  /* —— 生产计划表 —— */
+  '装配套数':    { f:function (b){ return uniq(b.map(function (r){ return r.模具编号; })).length; }, total:'sum', fmt:null, tip:'按模具编号去重 —— 一套模具多道工序只算一套' },
+  '装配数量':    { f:function (b){ return b.length; }, total:'sum', fmt:null, tip:'工序条数。一格多人拆开时各算一次，所以合计可能大于总行数' },
+  '平均装配工期':{ f:function (b){ return avgOf(b, asmDur); }, total:'avg', fmt:function (v){ return v + ' 天'; }, tip:'完工 − 开工：平均花几天干完一套' },
+  '装配延期':    { f:function (b){ return avgOf(b, asmLate); }, total:'avg', fmt:function (v){ return v + ' 天'; }, tip:'完工 − 截止（计划装配完成）。正数＝拖了，负数＝提前' },
+  '按时完工率':  { f:function (b){ return rateOf(b, function (r){ return asmLate(r) <= 0; }); }, total:'rate', fmt:function (v){ return v + '%'; }, tip:'完工 ≤ 截止 的比例，只算已完工的' },
+  '最长装配延期':{ f:function (b){ return maxOf(b, asmLate); }, total:'max', fmt:function (v){ return v + ' 天'; }, tip:null },
+  '送样完成数':  { f:function (b){ return b.filter(function (r){ return r.实际送样时间; }).length; }, total:'sum', fmt:null, tip:'实际送样时间已填的条数' },
+  '工序数':      { f:function (b){ return b.length; }, total:'sum', fmt:null, tip:'一共多少道工序' },
+  '模具编号数':  { f:function (b){ return uniq(b.map(function (r){ return r.模具编号; })).length; }, total:'sum', fmt:null, tip:null },
+  '图纸及时率':  { f:function (b){ return pct(b.filter(function (r){ return r.设计延期 <= 0; }).length, b.length); }, total:'rate', fmt:function (v){ return v + '%'; }, tip:'设计延期 ≤ 0 的工序占比' },
+  '设计延期合计':{ f:function (b){ return b.reduce(function (a, r){ return a + r.设计延期; }, 0); }, total:'sum', fmt:function (v){ return v + ' 天'; }, tip:null },
+  '装配完成率':  { f:function (b){ return pct(b.filter(function (r){ return r.装配完成; }).length, b.length); }, total:'rate', fmt:function (v){ return v + '%'; }, tip:'装配完成时间已填的行占比' },
+  '送样合格率':  { f:function (b){ return avg(b.filter(function (r){ return r.送样合格率 != null; }).map(function (r){ return r.送样合格率; })); }, total:'avg', fmt:function (v){ return v + '%'; }, tip:'部分行没有值，按有值的算' }
+};
+
+/* 每张表带自己的一套指标定义 —— 换表就换指标，
+   而不是把全部指标摆在那里让用户猜哪个能用 */
+var METRIC_DEF = {};
+function useMetrics(){
+  var src = SRC_OF();
+  var defs = (src && src.metricDefs) || DEMO_METRIC_DEF;
+  Object.keys(METRIC_DEF).forEach(function (k){ delete METRIC_DEF[k]; });
+  Object.keys(defs).forEach(function (k){ METRIC_DEF[k] = defs[k]; });
+}
+SRC.master.metricDefs = SRC.plan.metricDefs = DEMO_METRIC_DEF;
+SRC.master.detailCols = ['订单编号','模具编号','客户名称','零件名称','模具套数','设计','生产班组','接单日期','计划交模日期','实际交模日期'];
+SRC.plan.detailCols = ['模具编号','零件名称','物料编码','工序','工序名称','装配人','装配开始时间','计划装配完成时间','装配完成时间','实际送样时间'];
+SRC.master.keyCols = ['订单编号','模具编号'];
+SRC.plan.keyCols = ['模具编号','订单编号'];
+SRC.master.colCount = 24;
+SRC.plan.colCount = 37;
+SRC.master.headerRow = 2; SRC.master.markerRow = 3; SRC.master.hasHeader = true;
+SRC.plan.headerRow = 2;   SRC.plan.markerRow = 0;   SRC.plan.hasHeader = true;
+var DEMO_SRC = SRC;
+
+var LINK = {
+  master:{ to:'生产计划表', on:'订单编号', title:'生产计划表 · 按订单编号',
+    why:'把这道订单下所有工序捞出来，算出「这套模具做到哪一步了」，就能按完成进度排序。',
+    out:['工序总数','已完成工序','完成进度'],
+    sql:'<b>按</b> 订单编号 <b>关联</b> 生产计划表\n<b>带出</b> 工序总数, 已完成工序, 完成进度' },
+  plan:{ to:'总计划表', on:'订单编号', title:'总计划表 · 按订单编号',
+    why:'补上每道工序所属订单的 <b>计划交模日期</b> 和 <b>模具套数</b> —— 这样就能只看「已经过了交期还在做」的工序。',
+    out:['计划交模日期','模具套数','客户名称'],
+    sql:'<b>按</b> 订单编号 <b>关联</b> 总计划表\n<b>带出</b> 计划交模日期, 模具套数, 是否超期' }
+};
+
+/* ---------- 一键模板 ---------- */
+var TPLS = [
+  { s:'plan',   n:'★ 每月每人装配量', d:'默认 · 人 × 月',   g:['装配人'], t:{ col:'装配完成时间', grain:'month' },
+    m:['装配套数','装配数量','按时完工率'], v:'pivot' },
+  { s:'plan',   n:'每月每人开工量',   d:'按开工日看',       g:['装配人'], t:{ col:'装配开始时间', grain:'month' },     m:['装配套数','装配数量'] },
+  { s:'plan',   n:'每月每人送样量',   d:'按送样日看',       g:['装配人'], t:{ col:'实际送样时间', grain:'month' },     m:['装配套数','送样完成数'] },
+  { s:'plan',   n:'装配工期与延期',   d:'干几天 / 拖几天',   g:['装配人'], t:{ col:'装配完成时间', grain:'month' },
+    m:['装配套数','平均装配工期','装配延期','按时完工率'] },
+  { s:'plan',   n:'每季每人装配量',   d:'季度汇总',         g:['装配人'], t:{ col:'装配完成时间', grain:'quarter' },   m:['装配套数','装配数量'] },
+  { s:'plan',   n:'每天装配量',       d:'按天看产出',       g:['装配人'], t:{ col:'装配完成时间', grain:'day' },       m:['装配套数'] },
+  { s:'plan',   n:'每周装配量',       d:'按周看产出',       g:['装配人'], t:{ col:'装配完成时间', grain:'week' },      m:['装配套数'] },
+  { s:'plan',   n:'按零件看装配量',   d:'哪种零件做得多',   g:['零件名称'], t:{ col:'装配完成时间', grain:'month' },   m:['装配套数','平均装配工期'] },
+  { s:'plan',   n:'每月每人出图量',   d:'设计的逐月产出',   g:['设计'],   t:{ col:'图纸下发',     grain:'month' },     m:['工序数','设计延期合计'] },
+  { s:'plan',   n:'外协线割分布',     d:'线割给了谁做',     g:['线割供应商'], t:null, m:['装配套数','装配数量','装配完成率'] },
+  { s:'master', n:'每月交模量',       d:'客户 × 月',        g:['客户名称'], t:{ col:'实际交模日期', grain:'month' },   m:['订单数','交模套数'] },
+  { s:'master', n:'每季准交率',       d:'季度对比',         g:['生产班组'], t:{ col:'计划交模日期', grain:'quarter' }, m:['订单数','准交率','平均延期天数'] },
+  { s:'master', n:'订单准交分析',     d:'谁拖了、拖几天',   g:['客户名称'], t:null, m:['订单数','模具套数','平均延期天数','准交率'] },
+  { s:'master', n:'设计员接单量',     d:'谁手上模具最多',   g:['设计'],   t:null, m:['订单数','模具套数','平均延期天数'] },
+  { s:'master', n:'延期排行榜',       d:'最拖的排前面',     g:['客户名称','设计'], t:null, m:['订单数','最长延期','平均延期天数'] },
+  { s:'master', n:'班组产能',         d:'A/B/C 谁更忙',     g:['生产班组'], t:null, m:['订单数','模具套数','平均交货周期'] }
+];
+
+/* ---------- 另外 41 张表（按结构归堆） ---------- */
+var GROUPS = [
+  { id:'A', key:'工序明细（同构）', icon:'▤', desc:'列头一致：模具编号 · 零件名称 · 工序 · 工序名称 · 设计 · 班组',
+    sheets:[['送模',1669,28],['二次加工',1426,15],['2570.71',162,8],['26124',68,8],['Sheet9',66,11],
+            ['Sheet11',54,9],['恒合打单',44,10],['2629',43,17],['B',40,8],['Sheet5',37,15],['A',30,8],
+            ['恒合 杨和',30,8],['铭牌喷字',28,9],['24124汇成',28,13],['Sheet2',12,7],['Sheet6',10,7],['极品',7,6]]},
+  { id:'B', key:'计划与结存', icon:'▥', desc:'订单数 · 发出套数 · 结存 · 计划/实际日期',
+    sheets:[['2026年模具结存表家电',198,20],['总计划表 统计表',68,43]]},
+  { id:'C', key:'退回与改模', icon:'↺', desc:'调回日期 · 完成日期 · 模具工艺 · 处理方案',
+    sheets:[['2026年模具退维修',331,22],['2026年模具退客户改',266,21],['Sheet7',73,13],['Sheet1',37,8]]},
+  { id:'D', key:'项目与问题点', icon:'✦', desc:'问题描述 · 整改方案 · 责任人 —— 质量分析',
+    sheets:[['2026项目汇总',896,15],['2025项目汇总 (2)',896,15],['售后记录',39,13],['2026加工问题点',37,11],['2571.70',31,9]]},
+  { id:'E', key:'工序进度宽表', icon:'▦', desc:'一个订单一行、工序横着铺开 → 要先转成竖表',
+    sheets:[['项目流程 (2)',72,27],['项目',28,9],['铭牌签名',26,19]]},
+  { id:'F', key:'已是统计结果', icon:'Σ', desc:'人工做的透视表，可当模板参考',
+    sheets:[['订单生产统计表',100,12]]},
+  { id:'G', key:'空表 / 未命名', icon:'▢', desc:'没有数据，统计时自动跳过',
+    sheets:[['Sheet4',39,9],['汽车模具临时工',15,10],['Sheet3',0,0],['Sheet10',0,0],['Sheet8',0,0],['Sheet12',0,0],['Sheet13',0,0],['Sheet14',0,0]]}
+];
+
+/* ---------- 校验规则 ---------- */
+var RULES = [
+  { sec:'结构问题（已自动处理）', items:[
+    { n:'表头不在第一行', d:'总计划表、生产计划表表头都在第 2 行；「极品」表头在第 3 行', hits:43, ok:true },
+    { n:'责任人行混在表头下面', d:'总计划表第 3 行是各列责任人，已识别并排除 —— 否则「设计」会多出一个叫「设计」的设计员', hits:24, ok:true },
+    { n:'合并单元格', d:'总计划表「客户名称 / 订单编号 / 零件名称」纵向合并 96 处，已向下填充', hits:96, ok:true },
+    { n:'列名重复', d:'生产计划表里有两个「设计」列，第二个已改名 设计_2', hits:1, sev:'warn',
+      ex:[['生产计划表','第 2 行','I 列 设计 ／ AB 列 设计 → 设计、设计_2']] },
+    { n:'整表为空', d:'8 张表没有任何数据，统计时自动跳过', hits:8, ok:true }
+  ]},
+  { sec:'数据脏了', items:[
+    { n:'设计列疑似同一人两种写法', d:'「黄石长」和「黄石长WF」同时出现，WF 看着像外发标记。若当成两个人，设计工作量会被摊薄一半', hits:2, sev:'bad',
+      ex:[['生产计划表','I 列','黄石长 ／ 黄石长WF'],['生产计划表','I 列','罗永生 ／ 罗承永WF']] },
+    { n:'日期列混进文字', d:'写的是文字不是日期，无法参与「延期天数」计算 —— 会被当成「未交模」', hits:12, sev:'bad',
+      ex:[['2026年模具退维修','第 7 行','完成日期 = 未拉模具'],['Sheet7','第 7 行','计划模具移交时间 = 待客户确认'],['Sheet9','第 10 行','完成日期 = 调试模具'],['总计划表','第 7 行','实际交模日期 = 待客户确认']] },
+    { n:'一格塞了多个值', d:'「设计」「生产班组」一个格子里写了多人／多班组', hits:187, sev:'bad',
+      ex:[['总计划表','第 4 行','生产班组 = A/B/C'],['总计划表','第 9 行','设计 = 志/黄'],['总计划表','第 37 行','生产班组 = A/B'],['2026项目汇总','第 13 行','装配人 = 李千军/黄德健']] },
+    { n:'编号列带后缀', d:'「模具编号」混进中文，去重计数会把同一套模具算成两套', hits:6, sev:'warn',
+      ex:[['B','第 3 行','2612502新模具'],['铭牌喷字','第 7 行','259601 新模具'],['B','第 7 行','2512605 不改']] },
+    { n:'一个格子两个编号', d:'「261001/257011」这种，是改模前后的两个编号', hits:11, sev:'warn',
+      ex:[['总计划表','第 10 行','261001/257011'],['Sheet11','第 12 行','2510822/2613501'],['C','第 2 行','2510822/2613501']] },
+    { n:'单元格为空', d:'多为合并单元格原本的状态，已填充', hits:1834, ok:true }
+  ]},
+  { sec:'数字对不上（重点看）', items:[
+    { n:'交样／交模日期早于接单日期', d:'时间倒挂，多半是年份打错', hits:9, sev:'bad',
+      ex:[['总计划表','第 7 行','2604 · 接单 2025-12-22 ／ 客户交样 2025-01-22'],['总计划表','第 8 行','2605 · 接单 2025-12-22 ／ 客户交样 2025-01-05'],['总计划表','第 10 行','2607 · 接单 2025-12-27 ／ 客户交样 2025-01-22']] },
+    { n:'交模延期超过 30 天', d:'不是填错就是真的拖了很久，需要确认', hits:4, sev:'bad',
+      ex:[['总计划表','第 4 行','2601 · 计划 2026-01-08 ／ 实际 2026-03-31 → 延期 82 天'],['总计划表','第 7 行','2604 · 延期 29 天'],['总计划表','第 16 行','2613 · 延期 26 天'],['总计划表','第 26 行','2623 · 延期 26 天']] },
+    { n:'已过计划交模日期却还没交', d:'实际交模日期是空的，需要追', hits:2, sev:'warn',
+      ex:[['总计划表','第 6 行','2606 · 计划 2026-01-17 · 23 套 · 恒合'],['总计划表','第 26 行','2626 · 计划 2026-04-08 · 4 套 · 天驰']] },
+    { n:'工序表的模具编号在总计划表里找不到', d:'明细有、总表没有，多半是编号打错', hits:41, sev:'warn',
+      ex:[['生产计划表','第 318 行','2612502 → 总计划表无此编号'],['生产计划表','第 902 行','26642403 → 位数不对']] },
+    { n:'合格率大于 100%', d:'「送样合格率%」填成了送样数量', hits:3, sev:'bad',
+      ex:[['生产计划表','第 402 行','送样合格率% = 130']] }
+  ]}
+];
+
+/* ==========================================================================
+   状态
+   ========================================================================== */
+var S = {
+  view:'source',
+  /* 默认：生产计划表 · 按月 × 装配人 · 装配数量（最常用的口径） */
+  src:'plan',
+  time:{ on:true, col:'装配完成时间', grain:'month' },
+  splitMulti:true,
+  groupBy:['装配人'],
+  metrics:['装配套数','装配数量','按时完工率'],
+  conds:[{ col:'装配人', op:'=', val:'' },
+         { col:'装配开始时间', op:'介于', val:'', val2:'' }],
+  drill:null,
+  link:true,
+  resView:'pivot',
+  openGroups:['A'],
+  tableOrder:['master','plan'],
+  sheetFilter:'',
+  rulesOn:RULES.reduce(function (acc, s){ return acc.concat(s.items); }, [])
+              .filter(function (r){ return !r.ok || r.sev === 'bad'; })
+              .map(function (r){ return r.n; })
+};
+
+/* ========================================================================== */
+function $(s){ return document.querySelector(s); }
+function $$(s){ return [].slice.call(document.querySelectorAll(s)); }
+function esc(s){
+  return String(s).replace(/[&<>"]/g, function (c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c];
+  });
+}
+function SRC_OF(){ return SRC[S.src]; }
+
+/* 时间列在工厂里的说法（开工/截止/完工/送样…） */
+function timeColDef(){
+  var list = SRC_OF().timeCols || [];
+  return list.filter(function (c){ return c.k === S.time.col; })[0] || list[0] || { k:'', t:'', why:'' };
+}
+function isDateCol(col){
+  return SRC_OF().timeCols.some(function (c){ return c.k === col; });
+}
+function dateOps(col){ return isDateCol(col) ? ['介于', '早于', '晚于'] : ['=', '≠', '包含']; }
+/* 列换了之后旧运算符可能不适用，修正掉 */
+function normOp(c){ var ops = dateOps(c.col); if (ops.indexOf(c.op) < 0) c.op = ops[0]; return c.op; }
+
+function ymdToday(){ var t = new Date(); return ymd(t); }
+function quickRange(kind){
+  var t = new Date(), y = t.getFullYear(), m = t.getMonth();
+  if (kind === 'month')     return [ymd(new Date(y, m, 1)),     ymd(new Date(y, m + 1, 0))];
+  if (kind === 'lastmonth') return [ymd(new Date(y, m - 1, 1)), ymd(new Date(y, m, 0))];
+  if (kind === 'quarter'){ var q = Math.floor(m / 3);
+    return [ymd(new Date(y, q * 3, 1)), ymd(new Date(y, q * 3 + 3, 0))]; }
+  if (kind === 'year')      return [y + '-01-01', y + '-12-31'];
+  return ['', ''];
+}
+
+/* 当前生效的分组维度：时间维度排在最前 */
+function dims(){ return (S.time.on ? [DIM_TIME] : []).concat(S.groupBy); }
+function dimName(d){ return d === DIM_TIME ? GRAIN_NAME[S.time.grain] : d; }
+function dimsLabel(){ return dims().map(dimName).join(' → '); }
+
+/* 统一的应用配置入口：模板 / 换表 / 换粒度都走这里 */
+function applyCfg(cfg){
+  if (!SRC[cfg.src]) cfg.src = (S.tableOrder && S.tableOrder[0]) || 'master';
+  S.src = cfg.src;
+  useMetrics();
+  var src = SRC[S.src], sd = src.defaults || { group:[], metrics:['条数'], time:null };
+  var tc = src.timeCols || [];
+  S.groupBy = (cfg.group || sd.group || []).slice();
+  S.metrics = (cfg.metrics || sd.metrics || ['条数']).slice();
+  var t = ('time' in cfg) ? cfg.time : sd.time;
+  S.time = (t && tc.length) ? { on:true, col:t.col, grain:t.grain }
+                            : { on:false, col:tc.length ? tc[0].k : '', grain:'month' };
+  S.resView = cfg.view || 'table';
+  S.drill = null;
+  S.conds = [];
+  if (src.dims.length) S.conds.push({ col:src.dims[0].k, op:'=', val:'' });
+  if (tc.length) S.conds.push({ col:tc[0].k, op:'介于', val:'', val2:'' });
+}
+
+/* ---------- 导航 ---------- */
+var NAV = [
+  { id:'source', label:'数据源', tip:'43 表', icon:'grid' },
+  { id:'stat',   label:'做统计', icon:'calc' },
+  { id:'result', label:'结果',   icon:'chart' },
+  { id:'check',  label:'校验',   tip:'296', icon:'check' }
+];
+function renderNav(){
+  var tipOf = { source: WB ? (WB.sheets.length + ' 表') : '示例', check: String(RULES.reduce(function (a, s){ return a + s.items.length; }, 0)) };
+  $('#rail').innerHTML = NAV.map(function (n){
+    var tip = tipOf[n.id];
+    return '<button class="rail-item ' + (S.view === n.id ? 'on' : '') + '" data-nav="' + n.id + '">' +
+      ICON[n.icon] + '<span>' + n.label + '</span>' +
+      (tip ? '<span style="flex:1"></span><span class="tag gray">' + tip + '</span>' : '') +
+      '</button>';
+  }).join('') +
+  '<div class="rail-note">电脑端：导入 · 建统计 · 跑校验（完整能力）<br>手机端：直接选文件 · 看结果 · 发图片</div>';
+
+  $('#tabbar').innerHTML = NAV.map(function (n){
+    var tip = tipOf[n.id];
+    return '<button class="' + (S.view === n.id ? 'on' : '') + '" data-nav="' + n.id + '">' +
+      ICON[n.icon] + '<span>' + n.label + '</span>' +
+      (n.id === 'check' && tip ? '<span class="badge">' + tip + '</span>' : '') + '</button>';
+  }).join('');
+}
+function go(v){
+  S.view = v;
+  NAV.forEach(function (n){ $('#v-' + n.id).hidden = n.id !== v; });
+  renderNav();
+  window.scrollTo(0, 0);
+  if (v === 'source') renderSource();
+  if (v === 'stat') renderStat();
+  if (v === 'result') renderResult();
+}
+
+/* ---------- ① 数据源 ---------- */
+function renderGroups(){
+  $('#groupList').innerHTML = GROUPS.map(function (g){
+    var open = S.openGroups.indexOf(g.id) >= 0;
+    var rows = g.sheets.reduce(function (a, s){ return a + s[1]; }, 0);
+    return '<button class="grp ' + (open ? 'open' : '') + '" data-grp="' + g.id + '">' +
+      '<span class="cube">' + g.icon + '</span>' +
+      '<span style="flex:1;min-width:0">' +
+        '<span class="nm">' + g.key + ' <span class="tag gray">' + g.sheets.length + ' 张</span></span>' +
+        '<span class="ds">' + g.desc + '</span>' +
+      '</span>' +
+      '<span class="tag gray">' + rows.toLocaleString() + ' 行</span>' +
+      '<span class="arw">›</span></button>' +
+      (open ? '<div class="grp-body">' + g.sheets.map(function (s){
+        return '<div class="tbl-row"><span style="font-weight:550">' + esc(s[0]) + '</span>' +
+          '<span class="n">' + s[2] + ' 列</span>' +
+          '<span class="n">' + (s[1] > 0 ? s[1].toLocaleString() + ' 行' : '空') + '</span></div>';
+      }).join('') + '</div>' : '');
+  }).join('');
+}
+
+/* ---------- ② 统计 ---------- */
+function renderTpl(){
+  if (!TPLS.length) buildTemplates();
+  $('#tplList').innerHTML = TPLS.map(function (t, i){
+    return '<button class="tpl" data-tpl="' + i + '">' + t.n +
+      '<small>' + esc(t.s ? SRC[t.s].name : '') + ' · ' + t.d + '</small></button>';
+  }).join('');
+}
+
+function renderStat(){
+  var src = SRC_OF();
+  useMetrics();
+
+  /* 第 1 步：当前在统计哪张表 —— 要一眼看得到，并且能换 */
+  $('#srcTog').innerHTML =
+    '<div class="curtable">' +
+      '<div class="ct-l"><div class="ct-n">' + esc(src.name) + '</div>' +
+        '<div class="ct-m">' + src.rows.length.toLocaleString() + ' 行 × ' + src.colCount + ' 列' +
+        (src.hasHeader === false ? ' · <span class="warn">未识别到表头</span>' : '') + '</div>' +
+      '</div>' +
+      '<div class="ct-r">' +
+        '<div class="ct-k"><b>' + src.dims.length + '</b> 列可分组 · ' +
+          '<b>' + src.timeCols.length + '</b> 个日期列 · ' +
+          '<b>' + src.metrics.length + '</b> 个指标</div>' +
+        '<button class="btn sm" data-nav="source">换一张表 →</button>' +
+      '</div>' +
+    '</div>';
+  $('#srcNote').innerHTML = src.timeCols.length
+    ? '下面所有可选项，都是《' + esc(src.name) + '》里<b>真实存在</b>的列。换表之后会全部跟着换。'
+    : '这张表<b>没有日期列</b>，所以时间维度用不了，只能按上下的列分组统计。';
+
+  var lk = LINK[S.src];
+  var lc = $('#linkCard');
+  if (lc) lc.hidden = !lk;
+  if (lk){
+    $('#linkTitle').textContent = lk.title;
+    $('#linkWhy').innerHTML = lk.why;
+    $('#linkSql').innerHTML = lk.sql;
+    $('#toggleLink').textContent = S.link ? '关闭' : '打开';
+    $('#linkState').textContent = S.link ? '已开启' : '已关闭';
+    $('#linkState').className = 'tag ' + (S.link ? 'info' : 'gray');
+  }
+
+  /* 分组：时间维度独立一个开关，其余列从池子里加 */
+  var gp = '';
+  if (S.time.on){
+    gp += '<span class="chip sel" data-del-time="1" title="时间维度：' + esc(S.time.col) + '">' +
+      '<span>' + esc(GRAIN_NAME[S.time.grain]) + '<span style="opacity:.65;font-weight:400">（' +
+      esc(S.time.col) + '）</span></span><span class="x">×</span></span>';
+  }
+  gp += S.groupBy.map(function (g){
+    return '<span class="chip sel" data-del-group="' + esc(g) + '"><span>' + esc(g) +
+      '</span><span class="x">×</span></span>';
+  }).join('');
+  $('#groupPicked').innerHTML = gp || '<span class="sub">还没选 —— 至少选一列</span>';
+  $('#groupPool').innerHTML = src.dims.filter(function (d){ return S.groupBy.indexOf(d.k) < 0; })
+    .map(function (d){
+      return '<button class="chip add" data-add-group="' + esc(d.k) + '" title="' + esc(d.why) + '">+ ' +
+        esc(d.k) + '<span class="tag gray" style="margin-left:2px">' + d.card + ' 类</span></button>';
+    }).join('');
+
+  /* 时间维度控件 */
+  var tcd = timeColDef();
+  if (!src.timeCols.length){
+    $('#timeBox').innerHTML = '<div class="sub">《' + esc(src.name) + '》里没有能当时间轴的日期列，' +
+      '所以用不了按天/按月/按季统计。换一张有日期列的表（比如生产计划表）就行。</div>';
+  } else {
+  var usable = src.rows.filter(function (r){ return grainKey(r[S.time.col], S.time.grain); }).length;
+  $('#timeBox').innerHTML =
+    '<div class="opt-row">' +
+      '<label class="sw"><input type="checkbox" id="timeOn"' + (S.time.on ? ' checked' : '') +
+        '><span>按时间分组</span></label>' +
+      '<select id="timeCol"' + (S.time.on ? '' : ' disabled') + '>' +
+        src.timeCols.map(function (c){
+          return '<option value="' + esc(c.k) + '"' + (c.k === S.time.col ? ' selected' : '') + '>' +
+            esc(c.k) + '（' + esc(c.t) + '）</option>';
+        }).join('') +
+      '</select>' +
+    '</div>' +
+    '<div class="grain" id="grainBox"' + (S.time.on ? '' : ' style="opacity:.45"') + '>' +
+      GRAINS.map(function (g){
+        return '<button data-grain="' + g.k + '" class="' + (S.time.grain === g.k ? 'on' : '') + '">' +
+          g.n + '</button>';
+      }).join('') +
+    '</div>' +
+    '<div class="sub" style="margin-top:9px">' +
+      (S.time.on
+        ? '<b>' + esc(tcd.k) + '（' + esc(tcd.t) + '）</b> —— ' + tcd.why + '。<br>' +
+          '这列有 <b>' + usable + '</b> / ' + src.rows.length +
+          ' 行能归期，其余（空值或写了文字）归到「未填」。'
+        : '已关闭，按整张表汇总。') +
+    '</div>';
+  }
+
+  /* 一格多值开关 —— 直接影响装配量的算法 */
+  var multiRows = src.rows.filter(function (r){
+    return src.dims.some(function (d){ return d.split && multi(r[d.k]).length > 1; });
+  }).length;
+  $('#splitBox').innerHTML =
+    '<label class="sw"><input type="checkbox" id="splitMulti"' + (S.splitMulti ? ' checked' : '') +
+      '><span>一格多人：拆开各算一次</span></label>' +
+    '<div class="sub" style="margin-top:6px">' +
+      '表里有 <b>' + multiRows + '</b> 行是一个格子写了多个人（如「李千军/黄德健」）。' +
+      '勾选后两人各记一次（默认）；取消则只算第一个。' +
+    '</div>';
+
+  /* 指标 */
+  var mp = S.metrics.map(function (m){
+    var def = METRIC_DEF[m] || {};
+    return '<span class="chip sel" data-del-metric="' + esc(m) + '" title="' + esc(def.tip || '') + '">' +
+      '<span>' + esc(m) + '</span><span class="x">×</span></span>';
+  }).join('');
+  $('#metricPicked').innerHTML = mp || '<span class="sub">至少选一个指标</span>';
+  $('#metricPool').innerHTML = src.metrics.filter(function (m){ return S.metrics.indexOf(m) < 0; })
+    .map(function (m){
+      var def = METRIC_DEF[m] || {};
+      return '<button class="chip add" data-add-metric="' + esc(m) + '" title="' + esc(def.tip || '') + '">+ ' +
+        esc(m) + '</button>';
+    }).join('');
+
+  /* 筛选条件：普通列给「= ≠ 包含」，日期列给「介于 早于 晚于」 */
+  var COL_KINDS = src.dims.map(function (d){ return d.k; })
+    .concat(src.timeCols.map(function (c){ return c.k; }));
+  var opts = {};
+  src.dims.forEach(function (d){
+    opts[d.k] = uniq(src.rows.map(function (r){ return String(r[d.k] == null ? '—' : r[d.k]); })).sort();
+  });
+  $('#condList').innerHTML = S.conds.map(function (c, i){
+    var date = isDateCol(c.col), op = normOp(c);
+    var valueBox;
+    if (date){
+      valueBox = (op === '介于')
+        ? '<input type="date" data-c-val="' + i + '" value="' + esc(c.val) + '">' +
+          '<span class="sub">至</span>' +
+          '<input type="date" data-c-val2="' + i + '" value="' + esc(c.val2 || '') + '">' +
+          '<button class="btn sm" data-quick="' + i + '" data-range="month">本月</button>' +
+          '<button class="btn sm" data-quick="' + i + '" data-range="lastmonth">上月</button>' +
+          '<button class="btn sm" data-quick="' + i + '" data-range="year">全年</button>' +
+          '<button class="btn sm" data-quick="' + i + '" data-range="clear">清空</button>'
+        : '<input type="date" data-c-val="' + i + '" value="' + esc(c.val) + '">';
+    } else {
+      valueBox = '<input list="vals-' + i + '" data-c-val="' + i + '" value="' + esc(c.val) +
+        '" placeholder="选择或输入…">' +
+        '<datalist id="vals-' + i + '">' + (opts[c.col] || []).slice(0, 80).map(function (v){
+          return '<option value="' + esc(v) + '">';
+        }).join('') + '</datalist>';
+    }
+    return '<div class="cond">' +
+      '<select data-c-col="' + i + '">' + COL_KINDS.map(function (k){
+        return '<option' + (k === c.col ? ' selected' : '') + '>' + esc(k) + '</option>';
+      }).join('') + '</select>' +
+      '<select data-c-op="' + i + '">' + dateOps(c.col).map(function (o){
+        return '<option' + (o === op ? ' selected' : '') + '>' + o + '</option>';
+      }).join('') + '</select>' +
+      valueBox +
+      (S.conds.length > 1 ? '<button class="rm" data-c-rm="' + i + '">×</button>' : '') +
+      '</div>';
+  }).join('');
+}
+
+/* ---------- 计算 ---------- */
+function compute(){
+  var src = SRC_OF();
+  var conds = S.conds.filter(function (c){ return c.val !== ''; });
+  var rows = src.rows.filter(function (r){
+    return conds.every(function (c){
+      /* 日期列：按区间比字符串即可，'YYYY-MM-DD' 字典序＝时间序 */
+      if (isDateCol(c.col)){
+        var dv = String(r[c.col] == null ? '' : r[c.col]);
+        if (!dv) return false;                 /* 没填日期的，任何区间都筛不中 */
+        if (c.op === '介于'){
+          if (c.val && dv < c.val) return false;
+          if (c.val2 && dv > c.val2) return false;
+          return true;
+        }
+        if (c.op === '早于') return c.val ? dv < c.val : true;
+        if (c.op === '晚于') return c.val ? dv > c.val : true;
+        return false;
+      }
+      var raw = String(r[c.col] == null ? '' : r[c.col]);
+      if (c.op === '≠') return multi(raw).indexOf(c.val) < 0;
+      if (c.op === '包含') return raw.indexOf(c.val) >= 0;
+      return multi(raw).indexOf(c.val) >= 0;   /* A/B/C 里查 B 也能命中 */
+    });
+  });
+
+  var bucket = new Map();
+  var dm = dims();
+  var splitCols = {};
+  src.dims.forEach(function (d){ if (d.split) splitCols[d.k] = true; });
+
+  rows.forEach(function (r){
+    /* 每个维度先算出这行的候选取值：时间→归期；一格多值→拆开成多个 */
+    var combos = [[]];
+    dm.forEach(function (dim){
+      var vals;
+      if (dim === DIM_TIME){
+        var k = grainKey(r[S.time.col], S.time.grain);
+        vals = [k == null ? '未填' : k];
+      } else if (splitCols[dim] && S.splitMulti){
+        vals = multi(r[dim]);
+      } else {
+        var raw = r[dim];
+        vals = [String(raw == null || raw === '' ? '—' : raw)];
+      }
+      if (!vals.length) vals = ['—'];
+      var next = [];
+      combos.forEach(function (c){ vals.forEach(function (v){ next.push(c.concat([v])); }); });
+      combos = next;
+    });
+    combos.forEach(function (c){
+      var k = c.join(' / ');
+      if (!bucket.has(k)) bucket.set(k, { vals:c, rows:[] });
+      bucket.get(k).rows.push(r);
+    });
+  });
+
+  var out = [];
+  bucket.forEach(function (b, k){
+    var o = { __k:k, __n:b.rows.length };
+    /* 分组列的实际取值也要挂上去，否则表格第一列会显示成「—」 */
+    dm.forEach(function (dim, i){ o[dimName(dim)] = b.vals[i]; });
+    S.metrics.forEach(function (m){ o[m] = METRIC_DEF[m].f(b.rows); });
+    out.push(o);
+  });
+  return { out:out, rows:rows, src:src, dm:dm };
+}
+
+/* 只返回数值，单位由 fmt() 统一加 —— 之前 'rate' 自己带 % 又过一遍 fmt，成了 20%% */
+function totalOf(m, out){
+  var def = METRIC_DEF[m];
+  if (!out.length || !def) return '';
+  var n = out.reduce(function (a, o){ return a + o.__n; }, 0);
+  if (def.total === 'sum') return out.reduce(function (a, o){ return a + o[m]; }, 0);
+  if (def.total === 'avg') return avg(out.map(function (o){ return o[m]; }));
+  if (def.total === 'max') return Math.max.apply(null, out.map(function (o){ return o[m]; }));
+  /* 比率类：加权平均。o[m] 本身已是百分数，这里不能再乘 100 */
+  if (def.total === 'rate') return n ? Math.round(out.reduce(function (a, o){ return a + o[m] * o.__n; }, 0) / n) : 0;
+  return '';
+}
+
+/* ---------- ③ 结果 ---------- */
+function syncResView(){
+  $$('#resView button').forEach(function (x){ x.classList.toggle('on', x.dataset.rv === S.resView); });
+  $('#resTableWrap').hidden = S.resView !== 'table';
+  $('#resBarWrap').hidden = S.resView !== 'bar';
+  $('#resPivotWrap').hidden = S.resView !== 'pivot';
+}
+
+function renderResult(){
+  var r = compute();
+  var out = r.out, rows = r.rows, src = r.src, dm = r.dm;
+  var gname = dimsLabel();
+  var condTxt = condText();
+  var unit = S.src === 'master' ? '订单' : '工序';
+
+  /* 导出必须拿到和屏幕上一模一样的数字，所以把这次结果存下来 */
+  S.last = { out:out, rows:rows, dm:dm, sorted:[], sortKey:null, pivot:null };
+
+  $('#resSub').textContent = src.name + ' · 按【' + gname + '】分组 · ' + condTxt + ' · 命中 ' + rows.length + ' 条';
+  renderDetail(rows);
+
+  if (!out.length){
+    $('#resAnswer').innerHTML = '<div class="t">结果</div>没有符合条件的数据，试试放宽筛选。';
+    $('#resKpis').innerHTML = '';
+    $('#resTableWrap').innerHTML = '<div class="empty"><div class="e">▦</div>没有数据</div>';
+    $('#resSql').textContent = '（无数据）';
+    S.resView = 'table';
+    syncResView();
+    return;
+  }
+
+  var fmt = fmtVal;
+
+  /* 主排序指标：延期类优先，其次数量类 */
+  var sortKey = S.metrics.filter(function (m){
+    return ['平均延期天数', '最长延期', '设计延期合计'].indexOf(m) >= 0;
+  })[0] || S.metrics.filter(function (m){
+    return ['工序数', '订单数', '模具套数'].indexOf(m) >= 0;
+  })[0] || S.metrics[0];
+
+  var sorted = out.slice().sort(function (a, b){ return Number(b[sortKey]) - Number(a[sortKey]); });
+  S.last.sorted = sorted;
+  S.last.sortKey = sortKey;
+  var worst = sorted[0];
+
+  /* 一句话结论：只说当前真的选了的指标，避免出现 NaN */
+  var has = function (m){ return S.metrics.indexOf(m) >= 0; };
+  var topOf = function (m){
+    return out.slice().sort(function (a, b){ return (Number(b[m]) || 0) - (Number(a[m]) || 0); })[0];
+  };
+  var answer;
+  if (S.src === 'master'){
+    var bits = ['按【' + gname + '】看了 <b>' + out.length + '</b> 组、<b>' + rows.length + '</b> 条订单'];
+    if (has('模具套数')) bits.push('共 <b>' + out.reduce(function (a, o){ return a + o.模具套数; }, 0) + '</b> 套模具');
+    if (has('准交率')) bits.push('整体准交率 <b>' + fmt('准交率', totalOf('准交率', out)) + '</b>');
+    answer = bits.join('，') + '。';
+    if (has('平均延期天数')){
+      var best = out.slice().sort(function (a, b){ return a.平均延期天数 - b.平均延期天数; })[0];
+      answer += '最拖的是 <b>' + esc(topOf('平均延期天数').__k) + '</b>（平均 ' +
+        fmt('平均延期天数', topOf('平均延期天数').平均延期天数) + '），最稳的是 <b>' + esc(best.__k) +
+        '</b>（' + fmt('平均延期天数', best.平均延期天数) + '）。';
+    } else {
+      answer += '数值最高的是 <b>' + esc(topOf(S.metrics[0]).__k) + '</b>（' +
+        fmt(S.metrics[0], topOf(S.metrics[0])[S.metrics[0]]) + '）。';
+    }
+  } else {
+    answer = '按【' + gname + '】看了 <b>' + out.length + '</b> 组、<b>' + rows.length + '</b> 条' + unit + '。' +
+      S.metrics.slice(0, 2).map(function (m){
+        var top = topOf(m);
+        return esc(m) + '最高的是 <b>' + esc(top.__k) + '</b>（' + fmt(m, top[m]) + '）';
+      }).join('；') + '。';
+  }
+  $('#resAnswer').innerHTML = '<div class="t">一句话结论</div>' + answer;
+
+  /* KPI 卡 */
+  var kpi = [['分组数', out.length, '共 ' + rows.length + ' 条' + unit, false]];
+  S.metrics.slice(0, 3).forEach(function (m){
+    var tv = totalOf(m, out);
+    var num = parseFloat(String(tv).replace(/[^\d.\-]/g, ''));
+    kpi.push([m, tv, (METRIC_DEF[m] && METRIC_DEF[m].tip) || '', /延期/.test(m) && num >= 8]);
+  });
+  $('#resKpis').innerHTML = kpi.map(function (k){
+    var raw = String(k[1]);
+    var m = raw.match(/[天%]/);
+    var numStr = raw.replace(/[^\d.\-+]/g, '');
+    return '<div class="kpi"><div class="k">' + esc(k[0]) + '</div>' +
+      '<div class="v">' + esc(numStr || raw) + (m ? '<small>' + m[0] + '</small>' : '') + '</div>' +
+      '<div class="d' + (k[3] ? ' dn' : '') + '">' + esc(k[2] || (raw !== numStr ? raw : '')) + '</div></div>';
+  }).join('');
+
+  /* 明细表 */
+  var cols = dm.map(dimName).concat(S.metrics);
+  var shortKey = function (o){
+    return dm.map(function (d){
+      var v = o[dimName(d)];
+      return d === DIM_TIME ? grainShort(v, S.time.grain) : v;
+    }).join(' · ');
+  };
+  $('#resTableWrap').innerHTML = '<table class="rt">' +
+    '<thead><tr>' + cols.map(function (c){ return '<th>' + esc(c) + '</th>'; }).join('') + '</tr></thead>' +
+    '<tbody>' + sorted.map(function (o){
+      var d = Number(o.平均延期天数);
+      var cls = (!isNaN(d) && d >= 20) ? 'bad' : ((!isNaN(d) && d >= 8) ? 'warn' : '');
+      return '<tr class="' + cls + '">' + cols.map(function (c, i){
+        var v = o[c];
+        var isNum = typeof v === 'number';
+        return '<td class="' + (isNum ? 'num' : '') + '">' + esc(fmt(c, v)) + '</td>';
+      }).join('') + '</tr>';
+    }).join('') + '</tbody>' +
+    '<tfoot><tr>' + cols.map(function (c, i){
+      if (i === 0) return '<td>合计</td>';
+      if (dm.map(dimName).indexOf(c) >= 0) return '<td></td>';
+      var t = totalOf(c, out);
+      return '<td class="' + (typeof t === 'number' ? 'num' : '') + '">' + esc(fmt(c, t)) + '</td>';
+    }).join('') + '</tr></tfoot></table>';
+
+  /* 排行图 */
+  var mx = Math.max.apply(null, out.map(function (o){ return Math.abs(Number(o[sortKey]) || 0); })) || 1;
+  $('#resBarWrap').innerHTML =
+    '<div class="sub" style="margin-bottom:12px">按【' + esc(sortKey) + '】降序' +
+      ((METRIC_DEF[sortKey] && METRIC_DEF[sortKey].tip) ? '（' + esc(METRIC_DEF[sortKey].tip) + '）' : '') + '</div>' +
+    sorted.map(function (o){
+      var v = Number(o[sortKey]) || 0;
+      var bad = /延期/.test(sortKey) && v >= 10;
+      return '<div class="bar-row"><span class="lb" title="' + esc(o.__k) + '">' + esc(shortKey(o)) + '</span>' +
+        '<span class="tr"><span class="fl' + (bad ? ' bad' : '') + '" style="width:' +
+          (Math.abs(v) / mx * 100) + '%"></span></span>' +
+        '<span class="vl">' + esc(fmt(sortKey, o[sortKey])) + '</span></div>';
+    }).join('');
+
+  /* 交叉表：有时间维度就把时间放列（行×月，一眼看完每个人的逐月产量） */
+  var dmN = dm.map(dimName);
+  var timeName = S.time.on ? GRAIN_NAME[S.time.grain] : null;
+  if (dmN.length === 2){
+    var rowDim, colDim;
+    if (timeName){ colDim = timeName; rowDim = (dmN[0] === timeName) ? dmN[1] : dmN[0]; }
+    else { rowDim = dmN[0]; colDim = dmN[1]; }
+
+    var pMetric = S.metrics[0];
+    var additive = METRIC_DEF[pMetric].total !== 'rate' && METRIC_DEF[pMetric].total !== 'avg';
+    var rv = uniq(out.map(function (o){ return o[rowDim]; })).sort();
+    var cv = uniq(out.map(function (o){ return o[colDim]; })).sort();
+    var cell = {};
+    out.forEach(function (o){ cell[o[rowDim] + '\u0001' + o[colDim]] = o[pMetric]; });
+
+    var body = rv.map(function (r0){
+      var sum = 0, tds = cv.map(function (c0){
+        var v = cell[r0 + '\u0001' + c0];
+        if (v == null) return '<td class="num" style="color:#c3ccd7">·</td>';
+        sum += Number(v) || 0;
+        return '<td class="num">' + esc(fmt(pMetric, v)) + '</td>';
+      }).join('');
+      var on = (S.drill && S.drill.dim === rowDim && S.drill.val === r0) ? ' on' : '';
+      return '<tr><td class="drill' + on + '" data-drill-dim="' + esc(rowDim) + '" data-drill-val="' +
+        esc(r0) + '" title="点一下，下面看这个人装配了哪些模具">' + esc(r0) + '</td>' + tds +
+        (additive ? '<td class="num" style="font-weight:700">' + esc(fmt(pMetric, sum)) + '</td>' : '') +
+        '</tr>';
+    }).join('');
+    S.last.pivot = { rowDim:rowDim, colDim:colDim, rv:rv, cv:cv, cell:cell,
+                     pMetric:pMetric, additive:additive, timeName:timeName };
+    var head = cv.map(function (c0){
+      var lb = (colDim === timeName) ? grainShort(c0, S.time.grain) : c0;
+      return '<th class="num">' + esc(lb) + '</th>';
+    }).join('');
+
+    $('#resPivotWrap').innerHTML = '<table class="rt"><thead><tr><th>' + esc(rowDim) + ' ＼ ' + esc(colDim) +
+      ' <span class="sub">· ' + esc(pMetric) + '</span></th>' + head +
+      (additive ? '<th class="num">合计</th>' : '') +
+      '</tr></thead><tbody>' + body + '</tbody></table>';
+  } else if (dmN.length > 2){
+    $('#resPivotWrap').innerHTML = '<div class="empty"><div class="e">⊞</div>' +
+      '交叉表一次只画 <b>两层</b><br><span class="sub">现在有 ' + dmN.length +
+      ' 层（' + esc(dmN.join(' → ')) + '），去掉一个分组列再看</span></div>';
+  } else {
+    $('#resPivotWrap').innerHTML = '<div class="empty"><div class="e">⊞</div>交叉表需要 <b>两个</b> 分组维度<br>' +
+      '<span class="sub">打开上面的「按时间分组」，再加一个「装配人」或「客户名称」就行</span></div>';
+  }
+
+  /* 口径说明 */
+  $('#resSql').innerHTML =
+    '<b>取</b> ' + esc(src.name) + '（' + rows.length + ' 行）' +
+    (S.link && LINK[S.src] ? '\n<b>联</b> ' + esc(LINK[S.src].to) + ' <b>按</b> ' + esc(LINK[S.src].on) : '') +
+    '\n<b>分</b> ' + esc(gname) +
+    '\n<b>算</b> ' + S.metrics.map(esc).join(', ') +
+    '\n<b>筛</b> ' + esc(condTxt) +
+    '\n<b>出</b> ' + out.length + ' 组';
+
+  syncResView();
+}
+
+/* ---------- 装配／订单明细（下钻）---------- */
+var DETAIL_COLS_OF = {
+  plan:   ['模具编号','零件名称','物料编码','工序','工序名称','装配人',
+           '装配开始时间','计划装配完成时间','装配完成时间','实际送样时间'],
+  master: ['订单编号','模具编号','客户名称','零件名称','模具套数','设计','生产班组',
+           '接单日期','计划交模日期','实际交模日期']
+};
+/* 明细行 → 值数组。屏幕渲染和导出共用，保证两边口径一模一样 */
+function detailCells(r){
+  var cols = SRC_OF().detailCols || [];
+  var vals = cols.map(function (c){
+    var v = r[c];
+    if (v == null || v === '') return '';
+    /* 只把真正是数字的转成数字 —— 直接 Number() 的话，「工序」列里写「成型」就会变成 NaN */
+    var n = Number(v);
+    return (!isNaN(n) && String(v).trim() !== '') ? n : v;
+  });
+  if (!isDemoSrc()) return { vals:vals };
+  if (S.src === 'plan'){
+    var done = !!r.装配完成时间;
+    return { vals:vals.concat([done ? asmDur(r) : '', done ? asmLate(r) : '']) };
+  }
+  return { vals:vals.concat([(r.延期天数 == null) ? '' : r.延期天数]) };
+}
+/* 演示数据用的是“现算”的延期/工期；上传的表在建表时就已经写进每一行了 */
+function isDemoSrc(){ return S.src === 'plan' || S.src === 'master'; }
+function detailMatrix(rows){
+  var cols = SRC_OF().detailCols || [];
+  var list = S.drill
+    ? rows.filter(function (r){ return multi(r[S.drill.dim]).indexOf(S.drill.val) >= 0; })
+    : rows;
+  var tail = !isDemoSrc() ? [] : (S.src === 'plan' ? ['工期(天)', '延期(天)'] : ['交模延期(天)']);
+  return { head:cols.concat(tail), body:list.map(function (r){ return detailCells(r).vals; }), list:list };
+}
+
+function renderDetail(rows){
+  var M = detailMatrix(rows);
+  var cap = 200, shown = M.body.slice(0, cap);
+  $('#detailHint').innerHTML = (S.drill
+      ? '只看 <b>' + esc(S.drill.dim) + ' = ' + esc(S.drill.val) + '</b> · '
+      : '当前条件下的全部明细 · ') + '共 <b>' + M.list.length + '</b> 行' +
+      (M.list.length > cap ? '（屏上只显示前 ' + cap + ' 行，导出拿全部）' : '');
+  $('#detailClear').hidden = !S.drill;
+  if (!shown.length){
+    $('#resDetail').innerHTML = '<div class="empty"><div class="e">▤</div>没有明细</div>';
+    return;
+  }
+  var nCol = M.head.length;
+  var head = M.head.map(function (c, i){
+    return '<th' + (i >= nCol - 2 && S.src === 'plan' ? ' class="num"' : (i === nCol - 1 && S.src === 'master' ? ' class="num"' : '')) +
+      '>' + esc(c) + '</th>';
+  }).join('');
+  var lastIdx = nCol - 1;
+  var emptyLabel = (S.src === 'plan') ? '未完工' : '未交模';
+  $('#resDetail').innerHTML = '<table class="rt"><thead><tr>' + head + '</tr></thead><tbody>' +
+    shown.map(function (vals){
+      var late = vals[lastIdx];
+      var cls = (typeof late === 'number' && late > 7) ? 'bad'
+              : ((typeof late === 'number' && late > 0) ? 'warn' : '');
+      return '<tr class="' + cls + '">' + vals.map(function (v, i){
+        if (v === '') return '<td class="num" style="color:var(--muted);font-family:inherit">' +
+          (i === lastIdx ? emptyLabel : '—') + '</td>';
+        var isNum = typeof v === 'number';
+        var txt = (i === lastIdx && isNum && v > 0) ? '+' + v : v;
+        return '<td' + (isNum ? ' class="num"' : '') + '>' + esc(txt) + '</td>';
+      }).join('') + '</tr>';
+    }).join('') + '</tbody></table>';
+}
+
+/* ---------- ④ 校验 ---------- */
+/* ==========================================================================
+   导出：图片(.png) / Excel(.xlsx) / PDF(打印) / CSV
+   不装任何第三方库 —— .xlsx 是按 OOXML 手工拼的 ZIP（store 不压缩）
+   ========================================================================== */
+function xmlEsc(s){
+  return String(s).replace(/[&<>"']/g, function (c){
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&apos;' }[c];
+  });
+}
+function colLetter(i){
+  var s = '', n = i + 1;
+  while (n > 0){ var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = (n - m - 1) / 26; }
+  return s;
+}
+function utf8Bytes(str){
+  if (window.TextEncoder) return new TextEncoder().encode(str);
+  var s = unescape(encodeURIComponent(str)), u = new Uint8Array(s.length);
+  for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  return u;
+}
+var CRC_T = (function (){
+  var t = new Array(256), c, n, k;
+  for (n = 0; n < 256; n++){
+    c = n;
+    for (k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(u8){
+  var c = 0xFFFFFFFF;
+  for (var i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+/* 最小 ZIP 打包（stored，无压缩） */
+function zipStore(files){
+  function le(n, b){ var a = new Uint8Array(b); for (var i = 0; i < b; i++) a[i] = (n >>> (8 * i)) & 0xFF; return a; }
+  function cat(list){
+    var n = 0, i;
+    for (i = 0; i < list.length; i++) n += list[i].length;
+    var o = new Uint8Array(n), p = 0;
+    for (i = 0; i < list.length; i++){ o.set(list[i], p); p += list[i].length; }
+    return o;
+  }
+  var d = new Date();
+  var dt = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  var dd = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  var parts = [], cent = [], off = 0;
+  files.forEach(function (f){
+    var nm = utf8Bytes(f.name), data = f.data, crc = crc32(data);
+    var lh = cat([le(0x04034b50, 4), le(20, 2), le(0x0800, 2), le(0, 2), le(dt, 2), le(dd, 2),
+                  le(crc, 4), le(data.length, 4), le(data.length, 4),
+                  le(nm.length, 2), le(0, 2), nm, data]);
+    parts.push(lh);
+    cent.push(cat([le(0x02014b50, 4), le(20, 2), le(20, 2), le(0x0800, 2), le(0, 2), le(dt, 2), le(dd, 2),
+                   le(crc, 4), le(data.length, 4), le(data.length, 4), le(nm.length, 2),
+                   le(0, 2), le(0, 2), le(0, 2), le(0, 2), le(0, 4), le(off, 4), nm]));
+    off += lh.length;
+  });
+  var cd = cat(cent);
+  var eocd = cat([le(0x06054b50, 4), le(0, 2), le(0, 2), le(files.length, 2), le(files.length, 2),
+                  le(cd.length, 4), le(off, 4), le(0, 2)]);
+  return cat([cat(parts), cd, eocd]);
+}
+
+/* ---------- 导出用数据（与屏幕上完全同一份） ---------- */
+function headerWithUnit(c){
+  var d = METRIC_DEF[c];
+  if (!d || !d.fmt) return c;
+  var probe = d.fmt(1);
+  if (probe.indexOf('%') >= 0) return c + '(%)';
+  if (probe.indexOf('天') >= 0) return c + '(天)';
+  return c;
+}
+/* 屏幕、图片、导出共用同一个格式化 */
+function fmtVal(k, v){
+  if (v === null || v === undefined || v === '') return '—';
+  var d = METRIC_DEF[k];
+  return (d && d.fmt) ? d.fmt(v) : v;
+}
+/* 汇总：当前看的是交叉表就导交叉表，否则导明细汇总表 */
+function summaryMatrix(){
+  var L = S.last;
+  if (L.pivot && S.resView === 'pivot'){
+    var p = L.pivot;
+    var head = [p.rowDim + ' ＼ ' + p.colDim + '（' + headerWithUnit(p.pMetric) + '）'];
+    p.cv.forEach(function (c0){ head.push(p.colDim === p.timeName ? grainShort(c0, S.time.grain) : c0); });
+    if (p.additive) head.push('合计');
+    var body = p.rv.map(function (r0){
+      var sum = 0, row = [r0];
+      p.cv.forEach(function (c0){
+        var v = p.cell[r0 + '\u0001' + c0];
+        if (v == null){ row.push(''); return; }
+        sum += Number(v) || 0;
+        row.push(v);
+      });
+      if (p.additive) row.push(sum);
+      return row;
+    });
+    return { head:head, body:body, foot:null };
+  }
+  var cols = L.dm.map(dimName).concat(S.metrics);
+  var body = L.sorted.map(function (o){
+    return L.dm.map(function (d){ return o[dimName(d)]; })
+      .concat(S.metrics.map(function (m){ return o[m]; }));
+  });
+  var foot = cols.map(function (c, i){
+    if (i === 0) return '合计';
+    if (L.dm.map(dimName).indexOf(c) >= 0) return '';
+    return totalOf(c, L.out);
+  });
+  return { head:cols.map(headerWithUnit), body:body, foot:foot };
+}
+function condText(){
+  var cs = S.conds.filter(function (c){ return c.val !== '' || c.val2; });
+  if (!cs.length) return '全部数据';
+  return cs.map(function (c){
+    if (isDateCol(c.col)){
+      return c.op === '介于'
+        ? c.col + ' 在 ' + (c.val || '不限') + ' ~ ' + (c.val2 || '不限')
+        : c.col + ' ' + c.op + ' ' + c.val;
+    }
+    return c.col + c.op + c.val;
+  }).join('；');
+}
+function metaLines(){
+  var L = S.last, d = new Date();
+  return [
+    '数据源：' + FILE_NAME + ' → ' + SRC_OF().name + '（命中 ' + L.rows.length + ' 行）',
+    '统计口径：按【' + dimsLabel() + '】分组' +
+      (S.time.on ? '；时间轴 = ' + S.time.col + '（' + GRAIN_NAME[S.time.grain] + '）' : '；未启用时间维度'),
+    '统计指标：' + S.metrics.map(headerWithUnit).join('、'),
+    '筛选条件：' + condText(),
+    '一格多人：' + (S.splitMulti ? '拆开各算一次' : '只算第一个'),
+    S.drill ? '明细范围：只看 ' + S.drill.dim + ' = ' + S.drill.val : '明细范围：全部',
+    '导出时间：' + ymd(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes())
+  ];
+}
+function exportPayload(){
+  var sum = summaryMatrix(), det = detailMatrix(S.last.rows);
+  return {
+    title: SRC_OF().name + ' · ' + dimsLabel() + ' 统计',
+    meta: metaLines(),
+    sheets: [
+      { name:'汇总', head:sum.head, body:sum.body, foot:sum.foot },
+      { name:'明细', head:det.head, body:det.body, foot:null }
+    ]
+  };
+}
+function fileBase(){
+  var d = new Date();
+  return '装配统计_' + SRC_OF().name + '_' + ymd(d).replace(/-/g, '') + '_' +
+         pad2(d.getHours()) + pad2(d.getMinutes());
+}
+function download(blob, name){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function (){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+}
+
+/* ---------- Excel(.xlsx) ---------- */
+var CELL_TEXT = 0, CELL_HEAD = 1, CELL_INT = 2, CELL_DEC = 3, CELL_TITLE = 4;
+function xlsxCell(v){
+  if (v === null || v === undefined || v === '') return { v:'', st:CELL_TEXT };
+  if (typeof v === 'number' && isFinite(v)) return { v:v, st: (Math.round(v) === v ? CELL_INT : CELL_DEC) };
+  return { v:v, st:CELL_TEXT };
+}
+function sheetXml(lead, head, body, foot, widths){
+  var matrix = [];
+  lead.forEach(function (t, i){
+    matrix.push([{ v:t, st: (i === 0 ? CELL_TITLE : CELL_TEXT), span:true }]);
+  });
+  matrix.push([]);
+  var headAt = matrix.length;
+  matrix.push(head.map(function (t){ return { v:t, st:CELL_HEAD }; }));
+  body.forEach(function (r){ matrix.push(r.map(xlsxCell)); });
+  if (foot) matrix.push(foot.map(xlsxCell));
+
+  var maxCol = head.length;
+  var cols = [];
+  for (var ci = 0; ci < maxCol; ci++){
+    cols.push('<col min="' + (ci + 1) + '" max="' + (ci + 1) + '" width="' +
+      (widths[ci] || 13) + '" customWidth="1"/>');
+  }
+  var rows = matrix.map(function (row, ri){
+    if (!row.length) return '<row r="' + (ri + 1) + '"/>';
+    var cells = row.map(function (cell, ci){
+      var ref = colLetter(ci) + (ri + 1);
+      if (cell.v === '') return '';
+      if (typeof cell.v === 'number')
+        return '<c r="' + ref + '" s="' + cell.st + '"><v>' + cell.v + '</v></c>';
+      return '<c r="' + ref + '" s="' + cell.st + '" t="inlineStr"><is><t xml:space="preserve">' +
+        xmlEsc(cell.v) + '</t></is></c>';
+    }).join('');
+    return '<row r="' + (ri + 1) + '">' + cells + '</row>';
+  }).join('');
+
+  var lastRow = matrix.length;
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetFormatPr defaultRowHeight="16"/>' +
+    '<cols>' + cols.join('') + '</cols>' +
+    '<sheetData>' + rows + '</sheetData>' +
+    '<autoFilter ref="A' + (headAt + 1) + ':' + colLetter(maxCol - 1) + lastRow + '"/>' +
+    '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>' +
+    '</worksheet>';
+}
+var XLSX_STYLES =
+  '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+  '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<numFmts count="1"><numFmt numFmtId="164" formatCode="0.0"/></numFmts>' +
+  '<fonts count="3">' +
+    '<font><sz val="11"/><name val="宋体"/></font>' +
+    '<font><b/><sz val="11"/><name val="宋体"/></font>' +
+    '<font><b/><sz val="14"/><name val="微软雅黑"/></font>' +
+  '</fonts>' +
+  '<fills count="3">' +
+    '<fill><patternFill patternType="none"/></fill>' +
+    '<fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFEEF3FA"/><bgColor indexed="64"/></patternFill></fill>' +
+  '</fills>' +
+  '<borders count="2"><border/>' +
+    '<border><left style="thin"><color rgb="FFBFBFBF"/></left><right style="thin"><color rgb="FFBFBFBF"/></right>' +
+    '<top style="thin"><color rgb="FFBFBFBF"/></top><bottom style="thin"><color rgb="FFBFBFBF"/></bottom></border>' +
+  '</borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="5">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">' +
+      '<alignment horizontal="center" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="1" fontId="0" fillId="0" borderId="1" applyBorder="1" applyNumberFormat="1" applyAlignment="1">' +
+      '<alignment horizontal="right"/></xf>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" applyBorder="1" applyNumberFormat="1" applyAlignment="1">' +
+      '<alignment horizontal="right"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" applyFont="1"/>' +
+  '</cellXfs>' +
+  '<cellStyles count="1"><cellStyle name="常规" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>';
+
+function exportXlsx(){
+  if (!S.last){ alert('先点一次「开始统计」再导出。'); return; }
+  var P = exportPayload(), n = P.sheets.length;
+  var files = [];
+  var ov = '';
+  for (var i = 1; i <= n; i++){
+    ov += '<Override PartName="/xl/worksheets/sheet' + i + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>';
+  }
+  files.push({ name:'[Content_Types].xml', data: utf8Bytes(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    ov +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '</Types>') });
+  files.push({ name:'_rels/.rels', data: utf8Bytes(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>') });
+  var sheetsXml = '', relsXml = '';
+  for (var k = 0; k < n; k++){
+    sheetsXml += '<sheet name="' + xmlEsc(P.sheets[k].name) + '" sheetId="' + (k + 1) + '" r:id="rId' + (k + 1) + '"/>';
+    relsXml += '<Relationship Id="rId' + (k + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (k + 1) + '.xml"/>';
+  }
+  relsXml += '<Relationship Id="rId' + (n + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>';
+  files.push({ name:'xl/workbook.xml', data: utf8Bytes(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<sheets>' + sheetsXml + '</sheets></workbook>') });
+  files.push({ name:'xl/_rels/workbook.xml.rels', data: utf8Bytes(
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    relsXml + '</Relationships>') });
+  files.push({ name:'xl/styles.xml', data: utf8Bytes(XLSX_STYLES) });
+  P.sheets.forEach(function (s, idx){
+    var w = s.head.map(function (h){
+      return Math.min(30, Math.max(10, String(h).length * 1.9 + 4));
+    });
+    files.push({ name:'xl/worksheets/sheet' + (idx + 1) + '.xml',
+      data: utf8Bytes(sheetXml(P.title ? (idx === 0 ? [P.title].concat(P.meta) : ['【' + s.name + '】'].concat(P.meta)) : [],
+                               s.head, s.body, s.foot, w)) });
+  });
+  download(new Blob([zipStore(files)],
+    { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fileBase() + '.xlsx');
+}
+
+/* ---------- 图片(.png)：直接用 canvas 画，发微信最实用 ---------- */
+var PNG_FONT = ',"Microsoft YaHei","微软雅黑",system-ui,sans-serif';
+function fitText(ctx, text, maxW){
+  var s = String(text);
+  if (ctx.measureText(s).width <= maxW) return s;
+  var lo = 0, hi = s.length;
+  while (lo < hi){
+    var mid = (lo + hi) >> 1;
+    if (ctx.measureText(s.slice(0, mid) + '…').width <= maxW) lo = mid + 1; else hi = mid;
+  }
+  return s.slice(0, Math.max(1, lo - 1)) + '…';
+}
+function wrapText(ctx, text, maxW){
+  var out = [], cur = '';
+  for (var i = 0; i < text.length; i++){
+    if (cur && ctx.measureText(cur + text[i]).width > maxW){ out.push(cur); cur = text[i]; }
+    else cur += text[i];
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+function exportPng(){
+  if (!S.last){ alert('先点一次「开始统计」再导出。'); return; }
+  var P = exportPayload(), L = S.last;
+  var asChart = (S.resView === 'bar') && L.sorted.length > 0;
+  var ROW = 34, PAD = 36, DPR = 2, CAP = 120;
+
+  var mc = document.createElement('canvas').getContext('2d');
+  function font(sz, bold){ return (bold ? '600 ' : '') + sz + 'px' + PNG_FONT; }
+
+  /* —— 量宽、定尺寸 —— */
+  var sum = P.sheets[0], cols = sum.head.length;
+  var rows = sum.body.slice(0, CAP);
+  var chartRows = L.sorted.slice(0, CAP);
+  var capped = (asChart ? chartRows.length : sum.body.length) > CAP;
+
+  mc.font = font(14.5, false);
+  var cw = [];
+  for (var i = 0; i < cols; i++){
+    var mx = mc.measureText(String(sum.head[i])).width + 8;
+    for (var j = 0; j < rows.length; j++){
+      var cv = rows[j][i];
+      if (cv === undefined || cv === null || cv === '') continue;
+      var tw = mc.measureText(String(cv)).width;
+      if (tw > mx) mx = tw;
+    }
+    cw.push(Math.max(84, Math.min(260, mx + 30)));
+  }
+  var tableW0 = cw.reduce(function (a, b){ return a + b; }, 0);
+  var W = Math.max(1000, Math.min(2600, tableW0 + PAD * 2));
+  if (tableW0 + PAD * 2 < W){
+    /* 富余宽度每列最多加 36，加不完就让整张表居中 ——
+       否则数字会被推到离表头很远的右边，看不出是哪一列 */
+    var per = Math.min(36, (W - PAD * 2 - tableW0) / cols);
+    cw = cw.map(function (x){ return x + per; });
+  } else if (tableW0 + PAD * 2 > W){
+    var kk = (W - PAD * 2) / tableW0;
+    cw = cw.map(function (x){ return x * kk; });
+  }
+  var tableW = cw.reduce(function (a, b){ return a + b; }, 0);
+  var X0 = PAD + Math.max(0, (W - PAD * 2 - tableW) / 2);
+  var X1 = X0 + tableW;
+
+  /* 哪一列是数字列 —— 表头也跟着右对齐，不然表头和数字隔太远 */
+  var colNum = [];
+  for (var q = 0; q < cols; q++){
+    var any = false;
+    for (var qj = 0; qj < rows.length; qj++){ if (typeof rows[qj][q] === 'number'){ any = true; break; } }
+    if (!any && sum.foot && typeof sum.foot[q] === 'number') any = true;
+    colNum.push(any);
+  }
+
+  mc.font = font(12.5, false);
+  var metaLines = [];
+  P.meta.forEach(function (m){
+    wrapText(mc, m, W - PAD * 2).forEach(function (x){ metaLines.push(x); });
+  });
+
+  var titleH = 42, metaH = metaLines.length * 20 + 10, kpiH = 84;
+  var tableTop = PAD + titleH + metaH + kpiH;
+  var nBody = asChart ? chartRows.length
+                      : (rows.length + 1 + (sum.foot ? 1 : 0));
+  var bodyH = asChart ? chartRows.length * 34 : nBody * ROW;
+  var H = tableTop + bodyH + 28 + 22;
+
+  var cvs = document.createElement('canvas');
+  cvs.width = Math.round(W * DPR);
+  cvs.height = Math.round(H * DPR);
+  var ctx = cvs.getContext('2d');
+  ctx.scale(DPR, DPR);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = 'middle';
+
+  var y = PAD;
+  ctx.textAlign = 'left'; ctx.fillStyle = '#151f2b'; ctx.font = font(23, true);
+  ctx.fillText(fitText(ctx, P.title, W - PAD * 2), PAD, y + titleH / 2 - 4);
+  y += titleH;
+
+  ctx.fillStyle = '#6b7c90'; ctx.font = font(12.5, false);
+  metaLines.forEach(function (m){ ctx.fillText(m, PAD, y + 10); y += 20; });
+  y += 10;
+
+  /* KPI */
+  var kpi = [['分组数', String(L.out.length)]];
+  S.metrics.slice(0, 3).forEach(function (m){ kpi.push([m, String(fmtVal(m, totalOf(m, L.out)))]); });
+  var kw = (W - PAD * 2 - 3 * 12) / 4;
+  kpi.slice(0, 4).forEach(function (kp, idx){
+    var x = PAD + idx * (kw + 12);
+    ctx.fillStyle = '#f6f8fb'; ctx.fillRect(x, y, kw, 66);
+    ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+    ctx.strokeRect(x + 0.5, y + 0.5, kw - 1, 65);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#6b7c90'; ctx.font = font(12, false);
+    ctx.fillText(fitText(ctx, kp[0], kw - 24), x + 12, y + 21);
+    ctx.fillStyle = '#151f2b'; ctx.font = font(21, true);
+    ctx.fillText(fitText(ctx, kp[1], kw - 24), x + 12, y + 45);
+  });
+  y = tableTop;
+
+  function txt(v){ return (v === undefined || v === null) ? '' : String(v); }
+  function hLine(yy){
+    ctx.strokeStyle = '#eef2f6'; ctx.lineWidth = 1; ctx.beginPath();
+    ctx.moveTo(X0, yy + 0.5); ctx.lineTo(X1, yy + 0.5); ctx.stroke();
+  }
+
+  if (asChart){
+    var sk = L.sortKey || S.metrics[0];
+    var mxv = Math.max.apply(null, chartRows.map(function (o){ return Math.abs(Number(o[sk]) || 0); })) || 1;
+    var LBL = 160, VAL = 110, trackW = Math.max(80, tableW - LBL - VAL - 16);
+    chartRows.forEach(function (o){
+      var v = Number(o[sk]) || 0;
+      ctx.textAlign = 'right'; ctx.fillStyle = '#3d4c5c'; ctx.font = font(14, false);
+      ctx.fillText(fitText(ctx, o.__k, LBL - 12), X0 + LBL - 12, y + 17);
+      var bx = X0 + LBL;
+      ctx.fillStyle = '#eef1f5'; ctx.fillRect(bx, y + 6, trackW, 22);
+      var bw = Math.max(2, Math.abs(v) / mxv * trackW);
+      var bad = /延期/.test(sk) && v >= 10;
+      var g = ctx.createLinearGradient(bx, 0, bx + bw, 0);
+      g.addColorStop(0, bad ? '#f0776b' : '#4b9bff');
+      g.addColorStop(1, bad ? '#d63b2c' : '#1f6feb');
+      ctx.fillStyle = g; ctx.fillRect(bx, y + 6, bw, 22);
+      ctx.textAlign = 'left'; ctx.fillStyle = '#3d4c5c'; ctx.font = font(13, false);
+      ctx.fillText(fitText(ctx, fmtVal(sk, o[sk]), VAL), bx + trackW + 10, y + 17);
+      y += 34;
+    });
+  } else {
+    /* 表头 */
+    ctx.fillStyle = '#eef3fa'; ctx.fillRect(X0, y, tableW, ROW);
+    var x = X0;
+    ctx.font = font(13, true); ctx.fillStyle = '#3d4c5c';
+    for (var ci = 0; ci < cols; ci++){
+      var hl = String(sum.head[ci]);
+      ctx.textAlign = colNum[ci] ? 'right' : 'left';
+      ctx.fillText(fitText(ctx, hl, cw[ci] - 16), colNum[ci] ? x + cw[ci] - 10 : x + 8, y + ROW / 2);
+      x += cw[ci];
+    }
+    y += ROW;
+
+    /* 数据行 */
+    rows.forEach(function (r, ri){
+      if (ri % 2 === 1){ ctx.fillStyle = '#fafbfd'; ctx.fillRect(X0, y, tableW, ROW); }
+      x = X0;
+      for (var i2 = 0; i2 < cols; i2++){
+        var v2 = r[i2], isNum = typeof v2 === 'number';
+        var hd2 = String(sum.head[i2]);
+        var isLate = /延期/.test(hd2);
+        if (isNum){
+          ctx.fillStyle = isLate ? (v2 > 7 ? '#b3261e' : (v2 > 0 ? '#a35b06' : '#3d4c5c')) : '#151f2b';
+          ctx.font = font(14, isLate && v2 > 7);
+          ctx.textAlign = 'right';
+          ctx.fillText(txt(v2), x + cw[i2] - 10, y + ROW / 2);
+        } else {
+          ctx.fillStyle = '#151f2b'; ctx.font = font(14, i2 === 0); ctx.textAlign = 'left';
+          ctx.fillText(fitText(ctx, txt(v2), cw[i2] - 16), x + 8, y + ROW / 2);
+        }
+        x += cw[i2];
+      }
+      hLine(y + ROW);
+      y += ROW;
+    });
+
+    /* 合计行 */
+    if (sum.foot){
+      ctx.fillStyle = '#f3f6fa'; ctx.fillRect(X0, y, tableW, ROW);
+      x = X0;
+      for (var i3 = 0; i3 < cols; i3++){
+        var fv = sum.foot[i3], fs = txt(fv);
+        if (fs){
+          var fn = typeof fv === 'number';
+          ctx.fillStyle = '#151f2b'; ctx.font = font(14, true);
+          ctx.textAlign = fn ? 'right' : 'left';
+          ctx.fillText(fitText(ctx, fs, cw[i3] - 16), fn ? x + cw[i3] - 10 : x + 8, y + ROW / 2);
+        }
+        x += cw[i3];
+      }
+      y += ROW;
+    }
+  }
+
+  var now = new Date();
+  ctx.textAlign = 'left'; ctx.fillStyle = '#98a6b6'; ctx.font = font(12, false);
+  ctx.fillText('由「模具车间表格统计器」生成 · ' + ymd(now) + ' ' + pad2(now.getHours()) + ':' +
+    pad2(now.getMinutes()) + (capped ? ' · 仅显示前 ' + CAP + ' 行，完整数据请导出 Excel' : ''),
+    PAD, y + 28);
+
+  cvs.toBlob(function (blob){ download(blob, fileBase() + '.png'); }, 'image/png');
+}
+
+/* ---------- CSV ---------- */
+function exportCsv(){
+  if (!S.last){ alert('先点一次「开始统计」再导出。'); return; }
+  var P = exportPayload();
+  function cell(v){
+    var s = (v === null || v === undefined) ? '' : String(v);
+    return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  var lines = [cell(P.title)];
+  P.meta.forEach(function (m){ lines.push(cell(m)); });
+  P.sheets.forEach(function (s){
+    lines.push('');
+    lines.push(cell('【' + s.name + '】'));
+    lines.push(s.head.map(cell).join(','));
+    s.body.forEach(function (r){ lines.push(r.map(cell).join(',')); });
+    if (s.foot) lines.push(s.foot.map(cell).join(','));
+  });
+  download(new Blob(['\ufeff' + lines.join('\r\n')], { type:'text/csv;charset=utf-8' }), fileBase() + '.csv');
+}
+
+/* ---------- PDF：走系统打印，中文最清楚 ---------- */
+function exportPdf(){
+  if (!S.last){ alert('先点一次「开始统计」再导出。'); return; }
+  var P = exportPayload();
+  $('#printHead').innerHTML = '<h1>' + esc(P.title) + '</h1>' +
+    '<div class="pm">' + P.meta.map(esc).join(' ｜ ') + '</div>';
+  var old = document.title;
+  document.title = fileBase();
+  window.print();
+  setTimeout(function (){ document.title = old; }, 800);
+}
+
+function renderRules(){
+  $('#ruleList').innerHTML = RULES.map(function (sec){
+    return '<div class="rule-h">' + esc(sec.sec) + '</div>' + sec.items.map(function (it){
+      var on = S.rulesOn.indexOf(it.n) >= 0;
+      var body = '<button class="rule ' + (on ? 'on' : '') + '" data-rule="' + esc(it.n) + '">' +
+        '<span class="cbx">' + (on ? '✓' : '') + '</span><span class="bd">' +
+        '<span class="tt">' + esc(it.n) + '<span class="tag ' + (it.ok ? 'ok' : (it.sev || 'gray')) + '">' +
+          (it.ok ? '已自动处理' : it.hits + ' 处') + '</span></span>' +
+        '<span class="dd">' + esc(it.d) + '</span></span></button>';
+      if (it.ex && on){
+        body += '<div class="finding">' + it.ex.map(function (e){
+          return '<div class="fr"><span class="loc">' + esc(e[0]) + ' · ' + esc(e[1]) +
+            '</span><span class="bad-v">' + esc(e[2]) + '</span></div>';
+        }).join('') +
+        '<div class="fr"><span class="sub">… 共 ' + it.hits +
+          ' 处，<span style="color:var(--brand);font-weight:600">全部展开 ›</span></span></div></div>';
+      }
+      return body;
+    }).join('');
+  }).join('');
+}
+
+/* ==========================================================================
+   事件
+   ========================================================================== */
+document.addEventListener('click', function (e){
+  var el;
+
+  if ((el = e.target.closest('[data-pick-sheet]'))){ pickSheet(el.dataset.pickSheet); return; }
+  if (e.target.id === 'fileInput') return;
+  if (e.target.closest('#dropZone')){ var fi = $('#fileInput'); if (fi) fi.click(); return; }
+
+  if ((el = e.target.closest('[data-nav]'))){ go(el.dataset.nav); return; }
+
+  if ((el = e.target.closest('[data-grp]'))){
+    var id = el.dataset.grp, i = S.openGroups.indexOf(id);
+    if (i >= 0) S.openGroups.splice(i, 1); else S.openGroups.push(id);
+    renderGroups(); return;
+  }
+
+  if ((el = e.target.closest('[data-src]'))){
+    applyCfg({ src: el.dataset.src });
+    renderStat(); return;
+  }
+
+  if ((el = e.target.closest('[data-tpl]'))){
+    var t = TPLS[+el.dataset.tpl];
+    applyCfg({ src:t.s, group:t.g, metrics:t.m, time:t.t, view:t.v });
+    renderStat(); go('result'); return;
+  }
+
+  if ((el = e.target.closest('[data-del-time]'))){ S.time.on = false; renderStat(); return; }
+  if ((el = e.target.closest('[data-grain]'))){
+    S.time.on = true; S.time.grain = el.dataset.grain; renderStat(); return;
+  }
+
+  if ((el = e.target.closest('[data-add-group]'))){
+    var g = el.dataset.addGroup;
+    if (S.groupBy.indexOf(g) < 0 && S.groupBy.length < 3) S.groupBy.push(g);
+    renderStat(); return;
+  }
+  if ((el = e.target.closest('[data-del-group]'))){
+    S.groupBy = S.groupBy.filter(function (x){ return x !== el.dataset.delGroup; });
+    renderStat(); return;
+  }
+  if ((el = e.target.closest('[data-add-metric]'))){
+    var m = el.dataset.addMetric;
+    if (S.metrics.indexOf(m) < 0) S.metrics.push(m);
+    renderStat(); return;
+  }
+  if ((el = e.target.closest('[data-del-metric]'))){
+    S.metrics = S.metrics.filter(function (x){ return x !== el.dataset.delMetric; });
+    renderStat(); return;
+  }
+  if ((el = e.target.closest('[data-c-rm]'))){
+    S.conds.splice(+el.dataset.cRm, 1); renderStat(); return;
+  }
+  /* 日期区间的快捷预设 */
+  if ((el = e.target.closest('[data-quick]'))){
+    var c = S.conds[+el.dataset.quick];
+    var rg = quickRange(el.dataset.range);
+    c.val = rg[0]; c.val2 = rg[1];
+    renderStat(); return;
+  }
+  /* 交叉表行标签 → 下钻看明细 */
+  if ((el = e.target.closest('[data-drill-val]'))){
+    var dim = el.dataset.drillDim, val = el.dataset.drillVal;
+    S.drill = (S.drill && S.drill.dim === dim && S.drill.val === val) ? null : { dim:dim, val:val };
+    renderResult(); return;
+  }
+  if ((el = e.target.closest('[data-rule]'))){
+    var n = el.dataset.rule, k = S.rulesOn.indexOf(n);
+    if (k >= 0) S.rulesOn.splice(k, 1); else S.rulesOn.push(n);
+    renderRules(); return;
+  }
+  if ((el = e.target.closest('[data-rv]'))){
+    S.resView = el.dataset.rv;
+    $$('#resView button').forEach(function (x){ x.classList.toggle('on', x === el); });
+    $('#resTableWrap').hidden = S.resView !== 'table';
+    $('#resBarWrap').hidden = S.resView !== 'bar';
+    $('#resPivotWrap').hidden = S.resView !== 'pivot';
+    return;
+  }
+});
+
+document.addEventListener('input', function (e){
+  var el = e.target.closest('[data-c-val]');
+  if (el){ S.conds[+el.dataset.cVal].val = el.value; return; }
+  el = e.target.closest('[data-c-val2]');
+  if (el) S.conds[+el.dataset.cVal2].val2 = el.value;
+});
+document.addEventListener('change', function (e){
+  if (e.target.id === 'fileInput'){ var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) openFile(f); return; }
+  if (e.target.id === 'timeOn'){ S.time.on = e.target.checked; renderStat(); return; }
+  if (e.target.id === 'timeCol'){ S.time.col = e.target.value; renderStat(); return; }
+  if (e.target.id === 'splitMulti'){ S.splitMulti = e.target.checked; renderStat(); return; }
+  var el = e.target.closest('[data-c-col]');
+  if (el){ var c = S.conds[+el.dataset.cCol]; c.col = el.value; c.val = ''; c.val2 = ''; renderStat(); return; }
+  el = e.target.closest('[data-c-op]');
+  if (el) S.conds[+el.dataset.cOp].op = el.value;
+});
+
+document.addEventListener('input', function (e){
+  if (e.target.id === 'sheetSearch'){
+    S.sheetFilter = e.target.value;
+    var pos = e.target.selectionStart;
+    renderSource();
+    var again = $('#sheetSearch');
+    if (again){ again.focus(); try { again.setSelectionRange(pos, pos); } catch (_){} }
+    return;
+  }
+});
+
+document.addEventListener('dragover', function (e){
+  var d = e.target.closest && e.target.closest('#dropZone');
+  if (d){ e.preventDefault(); d.classList.add('over'); }
+});
+document.addEventListener('dragleave', function (e){
+  var d = document.querySelector('#dropZone');
+  if (d) d.classList.remove('over');
+});
+document.addEventListener('drop', function (e){
+  var d = e.target.closest && e.target.closest('#dropZone');
+  if (!d) return;
+  e.preventDefault(); d.classList.remove('over');
+  var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) openFile(f);
+});
+
+function pickSheet(id){
+  if (!SRC[id]) return;
+  applyCfg({ src:id });
+  renderTpl();
+  renderStat();
+  renderSource();
+  go('stat');
+}
+
+$('#addCond').onclick = function (){
+  var src = SRC_OF();
+  S.conds.push({ col: src.dims[2] ? src.dims[2].k : src.dims[0].k, op:'=', val:'' });
+  renderStat();
+};
+$('#detailClear').onclick = function (){ S.drill = null; renderResult(); };
+$('#expPng').onclick = exportPng;
+$('#expXlsx').onclick = exportXlsx;
+$('#expCsv').onclick = exportCsv;
+$('#expPdf').onclick = exportPdf;
+$('#expTpl').onclick = function (){
+  alert('原型演示：真实版本会把「看哪张表 + 时间轴/粒度 + 分组 + 指标 + 筛选」存成模板，下个月换新表一键复用。');
+};
+$('#runStat').onclick = function (){ go('result'); };
+$('#toggleLink').onclick = function (){ S.link = !S.link; renderStat(); };
+$('#btnOpen').onclick = function (){
+  alert('原型演示：真实版本这里会打开系统选文件对话框（桌面端）或文件选择器（手机端）。');
+};
+$('#toggleAll').onclick = function (){
+  var all = RULES.reduce(function (a, s){ return a.concat(s.items.map(function (i){ return i.n; })); }, []);
+  S.rulesOn = (S.rulesOn.length === all.length) ? [] : all.slice();
+  renderRules();
+};
+
+/* ==========================================================================
+   读 xlsx —— ZIP 中央目录 + DecompressionStream('deflate-raw') + 正则扫 XML
+   刻意不用 DOMParser 解析工作表：真实文件里单个 sheet 解压后 19MB，
+   建 DOM 在手机上直接崩。正则扫描只吃一个字符串，稳得多。
+   这一段全是纯函数（不碰 DOM），所以能直接拿到 Node 里验证。
+   ========================================================================== */
+/* ==== XLSX-READER-START ==== */
+function _uniq(a){ var o = [], i; for (i = 0; i < a.length; i++) if (o.indexOf(a[i]) < 0) o.push(a[i]); return o; }
+function unesc(s){
+  if (s.indexOf('&') < 0) return s;
+  return s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'").replace(/&#(\d+);/g, function (_, d){ return String.fromCharCode(+d); })
+          .replace(/&#x([0-9a-fA-F]+);/g, function (_, h){ return String.fromCharCode(parseInt(h, 16)); })
+          .replace(/&amp;/g, '&');
+}
+function colIdx(ref){
+  var n = 0;
+  for (var i = 0; i < ref.length; i++){
+    var c = ref.charCodeAt(i);
+    if (c < 65 || c > 90) break;
+    n = n * 26 + (c - 64);
+  }
+  return n - 1;
+}
+/* Excel 序列号 → YYYY-MM-DD（1900 系统：25569 = 1899-12-30 → 1970-01-01） */
+function serialToDate(n){
+  var d = new Date(Math.round((n - 25569) * 86400000));
+  return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+}
+function isDateStr(v){ return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v); }
+function dateDiff(a, b){
+  if (!isDateStr(a) || !isDateStr(b)) return '';
+  var ms = new Date(b.slice(0, 10) + 'T00:00:00Z') - new Date(a.slice(0, 10) + 'T00:00:00Z');
+  return Math.round(ms / 86400000);
+}
+async function inflateRaw(raw){
+  if (typeof DecompressionStream === 'undefined')
+    throw new Error('这个浏览器不支持解压（缺 DecompressionStream），请用新版 Chrome / Edge / Safari。');
+  var ds = new DecompressionStream('deflate-raw');
+  var w = ds.writable.getWriter();
+  w.write(raw); w.close();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+async function unzip(buf){
+  var u8 = new Uint8Array(buf), dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), len = u8.length;
+  var eocd = -1, min = Math.max(0, len - 66000);
+  for (var i = len - 22; i >= min; i--){ if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; } }
+  if (eocd < 0) throw new Error('不是有效的 xlsx：找不到 ZIP 结尾标记。（.xls 老格式请先另存为 .xlsx）');
+  var count = dv.getUint16(eocd + 10, true), cdOff = dv.getUint32(eocd + 16, true);
+  var map = {}, dec = new TextDecoder('utf-8'), p = cdOff;
+  for (var n = 0; n < count; n++){
+    if (p + 46 > len || dv.getUint32(p, true) !== 0x02014b50) break;
+    var nlen = dv.getUint16(p + 28, true), elen = dv.getUint16(p + 30, true), clen = dv.getUint16(p + 32, true);
+    map[dec.decode(u8.subarray(p + 46, p + 46 + nlen))] = {
+      method: dv.getUint16(p + 10, true),
+      csize: dv.getUint32(p + 20, true),
+      lho: dv.getUint32(p + 42, true)
+    };
+    p += 46 + nlen + elen + clen;
+  }
+  return {
+    names: Object.keys(map),
+    has: function (nm){ return !!map[nm]; },
+    text: async function (nm){
+      var e = map[nm]; if (!e) return null;
+      var nlen2 = dv.getUint16(e.lho + 26, true), elen2 = dv.getUint16(e.lho + 28, true);
+      var start = e.lho + 30 + nlen2 + elen2;
+      var raw = u8.subarray(start, start + e.csize);
+      return dec.decode(e.method === 0 ? raw : await inflateRaw(raw));
+    }
+  };
+}
+function sharedStrings(xml){
+  if (!xml) return [];
+  var out = [], re = /<si>([\s\S]*?)<\/si>/g, m, tre = /<t[^>]*>([\s\S]*?)<\/t>/g;
+  while ((m = re.exec(xml))){
+    var s = '', t; tre.lastIndex = 0;
+    while ((t = tre.exec(m[1]))) s += t[1];
+    out.push(unesc(s));
+  }
+  return out;
+}
+/* 哪些单元格样式是日期 —— 光看列名不够，真实表里日期列也会混文字 */
+function dateStyles(xml){
+  if (!xml) return {};
+  var custom = {}, m, re = /<numFmt[^>]*numFmtId="(\d+)"[^>]*formatCode="([^"]*)"/g;
+  while ((m = re.exec(xml))){
+    var code = unesc(m[2]).replace(/\[[^\]]*\]/g, '').replace(/"[^"]*"/g, '');
+    if (/[ymdhs]/i.test(code) && /[ymd]/i.test(code)) custom[m[1]] = true;
+  }
+  var builtin = { 14:1,15:1,16:1,17:1,18:1,19:1,20:1,21:1,22:1,45:1,46:1,47:1 };
+  var block = (xml.match(/<cellXfs[\s\S]*?<\/cellXfs>/) || [''])[0];
+  var out = {}, idx = 0, x, re3 = /<xf\b([^>]*?)\/?>/g;
+  while ((x = re3.exec(block))){
+    var idm = /numFmtId="(\d+)"/.exec(x[1]);
+    var id = idm ? +idm[1] : 0;
+    if (builtin[id] || custom[id]) out[idx] = true;
+    idx++;
+  }
+  return out;
+}
+function parseSheet(xml, shared, dstyles){
+  var merges = [], mm, mre = /<mergeCell ref="([A-Z]+\d+):([A-Z]+\d+)"\/>/g;
+  while ((mm = mre.exec(xml))){
+    merges.push([colIdx(mm[1]), +mm[1].replace(/[^0-9]/g, ''), colIdx(mm[2]), +mm[2].replace(/[^0-9]/g, '')]);
+  }
+  var rows = [], rm, re = /<row[^>]*\sr="(\d+)"[^>]*>([\s\S]*?)<\/row>/g;
+  var ROW_CAP = 30000;
+  while ((rm = re.exec(xml))){
+    if (rows.length >= ROW_CAP) break;
+    var cells = [], cm, cre = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    while ((cm = cre.exec(rm[2]))){
+      var attrs = cm[1], body = cm[2] || '';
+      var refm = /r="([A-Z]+\d+)"/.exec(attrs);
+      if (!refm) continue;
+      var tm = /t="([^"]+)"/.exec(attrs); var t = tm ? tm[1] : 'n';
+      var sm = /s="(\d+)"/.exec(attrs); var st = sm ? +sm[1] : -1;
+      var v = '';
+      if (t === 'inlineStr'){
+        var im = /<t[^>]*>([\s\S]*?)<\/t>/.exec(body);
+        v = im ? unesc(im[1]) : '';
+      } else {
+        var vm = /<v>([\s\S]*?)<\/v>/.exec(body);
+        if (vm){
+          if (t === 's'){ var sv = shared[+vm[1]]; v = sv === undefined ? '' : sv; }
+          else if (t === 'str') v = unesc(vm[1]);
+          else if (t === 'b') v = vm[1] === '1' ? 'TRUE' : 'FALSE';
+          else if (t === 'e') v = '';
+          else {
+            var num = +vm[1];
+            v = (dstyles[st] && num > 20000 && num < 80000) ? serialToDate(num) : vm[1];
+          }
+        }
+      }
+      if (v !== '') cells[colIdx(refm[1])] = String(v).replace(/\s+/g, ' ').trim();
+    }
+    rows.push({ n: +rm[1], cells: cells });
+  }
+  return { rows: rows, merges: merges };
+}
+/* 真实表里「客户名称 / 订单编号」纵向合并，只有第一行有值 —— 必须向下填 */
+function fillMerges(grid, merges, maxRow){
+  merges.forEach(function (mg){
+    var src = grid[mg[1]];
+    var v = src ? src[mg[0]] : undefined;
+    if (v === undefined || v === '') return;
+    var r1 = Math.max(1, mg[1]), r2 = Math.min(mg[3], maxRow);
+    for (var r = r1 + 1; r <= r2; r++){
+      if (!grid[r]) grid[r] = [];
+      for (var c = mg[0]; c <= mg[2]; c++) if (!grid[r][c]) grid[r][c] = v;
+    }
+  });
+}
+/* 找表头行：内容多、且大多是文字的行；越靠前越优先 */
+function countFilled(row){
+  var n = 0;
+  if (row) for (var c = 0; c < row.length; c++) if (row[c] !== undefined && row[c] !== '') n++;
+  return n;
+}
+function detectHeader(grid, live){
+  var best = -1, bestScore = -1;
+  for (var i = 0; i < Math.min(live.length - 1, 4); i++){
+    var r = live[i], row = grid[r] || [];
+    var filled = 0, text = 0, last = -1;
+    for (var c = 0; c < row.length; c++){
+      if (row[c] === undefined || row[c] === '') continue;
+      filled++; last = c;
+      if (!isFinite(+row[c]) && !isDateStr(row[c])) text++;
+    }
+    if (filled < 3) continue;
+    /* 表头必须以文字为主，而且只能在前 4 行里。
+       不然一张根本没表头的表（比如「送模」），会把第 7 行的数据当成表头。 */
+    if (text / filled < 0.65) continue;
+    var wide = 0;
+    for (var k = i + 1; k <= Math.min(i + 6, live.length - 1); k++){
+      var w = countFilled(grid[live[k]]);
+      if (w > wide) wide = w;
+    }
+    if (wide >= 6 && filled < wide * 0.5) continue;
+    var score = filled * 1.0 + (text / filled) * 4 + (last + 1) * 0.15 - i * 1.2;
+    if (score > bestScore){ bestScore = score; best = r; }
+  }
+  return best;   /* -1 = 这张表没有表头 */
+}
+/* 总计划表第 3 行写的是「设计/计划员/品质/副总…」—— 这行不能当数据 */
+var ROLE_WORDS = /^(设计|计划员|品质|副总|制造主管|主管|组长|班长|责任人|签字|签名|确认|审核|审批|担当|负责)$/;
+function isMarkerRow(grid, r){
+  var row = grid[r] || [], vals = [];
+  for (var c = 0; c < row.length; c++) if (row[c]) vals.push(String(row[c]));
+  if (vals.length < 3) return false;
+  for (var i = 0; i < vals.length; i++) if (vals[i].length > 8 || /\d/.test(vals[i])) return false;
+  var hit = vals.filter(function (v){ return ROLE_WORDS.test(v); }).length;
+  return hit >= vals.length * 0.4;
+}
+function classify(vals){
+  var d = 0, n = 0, t = 0;
+  vals.forEach(function (v){
+    if (isDateStr(v)) d++;
+    else if (isFinite(+v) && String(v).trim() !== '') n++;
+    else t++;
+  });
+  return { d: d, n: n, t: t };
+}
+function isDateish(col){ return col.cat === 'date'; }
+function isNumish(col){ return col.cat === 'num'; }
+function baseOf(name){
+  return name
+    .replace(/^(计划|预计|要求|客户|内部|图纸|下单|接单|返修|原|新)/, '')
+    .replace(/(开始|起动|开工|完成|结束|完工)?(时间|日期)?$/, '')
+    .trim();
+}
+/* 派生列：直接写进每一行，这样统计、筛选、导出、明细全都自动能用 */
+function buildDerived(rows, cols){
+  var made = [];
+  var dates = cols.filter(isDateish);
+  var groups = {};
+  dates.forEach(function (c){ var k = baseOf(c.name) || c.name; (groups[k] = groups[k] || []).push(c); });
+  Object.keys(groups).forEach(function (k){
+    var g = groups[k];
+    var plan   = g.filter(function (c){ return /^(计划|预计|要求|客户)/.test(c.name); })[0];
+    var actual = g.filter(function (c){ return /^实际/.test(c.name); })[0];
+    var start  = g.filter(function (c){ return /开始|开工|起动/.test(c.name); })[0];
+    /* end 必须把 plan 排掉 —— 否则「计划装配完成时间」自己就把两个位置都占了，
+       结果延期算不出来、工期也算成了「开工 → 计划完成」 */
+    var end    = g.filter(function (c){ return /完成|结束|完工/.test(c.name) && c !== plan; })[0];
+    /* 「实际完成日期」也算一种完成 */
+    if (!end && actual) end = actual;
+
+    var lateA = null, lateB = null;
+    if (plan && actual) { lateA = plan; lateB = actual; }
+    else if (plan && end) { lateA = plan; lateB = end; }
+    else if (g.length === 2 && actual) { lateA = g[0] === actual ? g[1] : g[0]; lateB = actual; }
+    if (lateA && lateB && lateA !== lateB){
+      var lk = k + ' 延期(天)';
+      rows.forEach(function (r){ r[lk] = dateDiff(r[lateA.name], r[lateB.name]); });
+      made.push({ k: lk, kind:'late', from: lateA.name + ' → ' + lateB.name });
+    }
+    if (start && end && start !== end){
+      var dk = k + ' 工期(天)';
+      rows.forEach(function (r){ r[dk] = dateDiff(r[start.name], r[end.name]); });
+      made.push({ k: dk, kind:'dur', from: start.name + ' → ' + end.name });
+    }
+  });
+  return made;
+}
+function buildTable(parsed, name){
+  if (!parsed || !parsed.rows.length) return null;
+  var grid = {}, rowNums = [], i;
+  parsed.rows.forEach(function (r){ grid[r.n] = r.cells.slice(); rowNums.push(r.n); });
+  var maxN = rowNums[rowNums.length - 1];
+  fillMerges(grid, parsed.merges, maxN);
+
+  var live = rowNums.filter(function (n){
+    var c = grid[n] || [];
+    for (var k = 0; k < c.length; k++) if (c[k] !== undefined && c[k] !== '') return true;
+    return false;
+  });
+  if (live.length < 3) return null;
+
+  var headerRow = detectHeader(grid, live);
+  var headerOk = headerRow > 0;
+  var startRow, dataRows;
+  if (!headerOk){
+    /* 没表头：列名用「第N列」，全部行都当数据 */
+    headerRow = live[0];
+    dataRows = live;
+  } else {
+    var hi = live.indexOf(headerRow);
+    startRow = live[hi + 1];
+    if (startRow === undefined) return null;
+    var markerRow = 0;
+    if (isMarkerRow(grid, startRow)){
+      markerRow = startRow;
+      startRow = live[live.indexOf(startRow) + 1];
+      if (startRow === undefined) return null;
+    }
+    dataRows = live.filter(function (n){ return n > headerRow && n !== markerRow; });
+    if (dataRows.length < 2) return null;
+  }
+
+  /* 列范围：表头与数据的最大列，去掉尾部全空的列 */
+  var maxCol = 0;
+  var scan = function (row){
+    for (var c = row.length - 1; c >= 0; c--) if (row[c] !== undefined && row[c] !== '') { if (c > maxCol) maxCol = c; break; }
+  };
+  scan(grid[headerRow] || []);
+  dataRows.forEach(function (n){ scan(grid[n] || []); });
+  maxCol = Math.min(maxCol, 59);
+
+  var cols = [], autoName = /^第\d+列$/;
+  for (var c = 0; c <= maxCol; c++){
+    /* 真实表里列名常带换行：「订单\n编号」「客户 名称」→ 去掉所有空白再当列名 */
+    var head = ((grid[headerRow] || [])[c] || '').replace(/\s+/g, '');
+    var vals = [], blank = 0;
+    dataRows.forEach(function (n){
+      var v = (grid[n] || [])[c];
+      if (v === undefined || v === '') blank++; else vals.push(v);
+    });
+    if (!head && !vals.length) continue;
+    cols.push({ name: head || ('第' + (c + 1) + '列'), idx: c, blank: blank, vals: vals });
+  }
+  if (cols.length < 2) return null;
+
+  /* WPS 导出的表常常日期列没有单元格格式，存的就一个纯序列号（46008）——
+     只按样式判断会把它当数字去求和。按「列名像日期 + 大多数值是序列号」兜底。
+     不能用 every：真实表里日期列会混进「待客户确认」这种文字。 */
+  cols.forEach(function (col){
+    if (!/日期|时间/.test(col.name) || !col.vals.length || autoName.test(col.name)) return;
+    var hits = col.vals.filter(function (v){
+      var n = +v;
+      return isFinite(n) && n > 20000 && n < 80000 && !isDateStr(v);
+    }).length;
+    if (hits >= col.vals.length * 0.7) col.serial = true;
+  });
+
+  /* 列重名加后缀 —— 真实表里「设计」出现两次 */
+  var seen = {};
+  cols.forEach(function (col){
+    if (seen[col.name] !== undefined){ seen[col.name]++; col.name = col.name + '_' + seen[col.name]; }
+    else seen[col.name] = 1;
+  });
+
+  cols.forEach(function (col){
+    if (col.serial) col.vals = col.vals.map(function (v){
+      var n = +v;
+      return (isFinite(n) && n > 20000 && n < 80000 && !isDateStr(v)) ? serialToDate(n) : v;
+    });
+    var c2 = classify(col.vals);
+    col.distinct = _uniq(col.vals).length;
+    col.cat = (c2.d > col.vals.length * 0.5) ? 'date'
+            : (c2.n > col.vals.length * 0.5) ? 'num'
+            : 'text';
+  });
+
+  var rows = dataRows.map(function (n){
+    var o = {};
+    cols.forEach(function (col){
+      var v = (grid[n] || [])[col.idx];
+      if (v === undefined || v === '') { o[col.name] = ''; return; }
+      if (col.serial){
+        var n2 = +v;
+        o[col.name] = (isFinite(n2) && n2 > 20000 && n2 < 80000 && !isDateStr(v)) ? serialToDate(n2) : v;
+      } else o[col.name] = v;
+    });
+    return o;
+  });
+
+  var derived = buildDerived(rows, cols);
+
+  /* 分组维度：取值重复度高的文字列（一个客户、一个人、一个班组才有分组意义） */
+  var dims = cols.filter(function (col){
+    return col.cat === 'text' && !autoName.test(col.name) && col.distinct >= 2 && col.distinct <= 60;
+  }).map(function (col){
+    return { k: col.name, card: col.distinct, why: col.distinct + ' 个不同取值',
+             split: /人|设计|班组|供应商|装配|负责/.test(col.name) };
+  });
+
+  /* 时间轴：能被当成日期的列 */
+  var timeCols = cols.filter(isDateish).map(function (col){
+    var t = /开始|开工|下单|接单/.test(col.name) ? '开工'
+          : /计划|预计|要求/.test(col.name) ? '截止'
+          : /完成|完工|结束/.test(col.name) ? '完工'
+          : /送|交/.test(col.name) ? '交付'
+          : '日期';
+    return { k: col.name, t: t, why: t === '截止' ? '看这个区间<b>应该</b>完成多少'
+              : t === '完工' ? '看这个区间<b>实际</b>完成多少' : '按这一列划分时间段' };
+  });
+
+  /* 指标：先派生（延期/工期最有价值），再去重数，最后才是一堆求和平均 */
+  var metricDefs = {}, tailDefs = {}, idNames = [], numNames = [], derivedNames = [];
+  cols.filter(function (col){ return !autoName.test(col.name) && /编号|编码|单号|序号|^号$/.test(col.name); })
+    .forEach(function (col){
+      var k = col.name + ' 去重数';
+      metricDefs[k] = { f: (function (nm){ return function (b){ return _uniq(b.map(function (r){ return r[nm]; })).length; }; })(col.name),
+                        total:'sum', fmt:null, tip:'按「' + col.name + '」去重' };
+      idNames.push(k);
+    });
+  cols.filter(isNumish).forEach(function (col){
+    /* 编号/序号/无名列求和毫无意义，只会把指标列表塞满 */
+    if (autoName.test(col.name) || /编号|编码|单号|序号/.test(col.name)) return;
+    var s = col.name + ' 求和', a = col.name + ' 平均';
+    tailDefs[s] = { f: (function (nm){ return function (b){ return b.reduce(function (x, r){ return x + (Number(r[nm]) || 0); }, 0); }; })(col.name),
+                    total:'sum', fmt:null, tip:'「' + col.name + '」求和' };
+    tailDefs[a] = { f: (function (nm){ return function (b){ return avgNum(b.map(function (r){ return r[nm]; })); }; })(col.name),
+                    total:'avg', fmt:null, tip:'「' + col.name + '」平均（跳过空值）' };
+    numNames.push(s); numNames.push(a);
+  });
+  derived.forEach(function (d){
+    if (d.kind === 'late'){
+      var a2 = d.k + ' 平均', m2 = d.k + ' 最长', r2 = d.k + ' 准时率';
+      metricDefs[a2] = { f: (function (nm){ return function (b){ return avgNum(b.map(function (r){ return r[nm]; })); }; })(d.k),
+                         total:'avg', fmt:function (v){ return v + ' 天'; }, tip:d.from + '；正数＝拖了' };
+      metricDefs[m2] = { f: (function (nm){ return function (b){
+                          var x = b.map(function (r){ return Number(r[nm]); }).filter(function (v){ return !isNaN(v); });
+                          return x.length ? Math.max.apply(null, x) : 0; }; })(d.k),
+                         total:'max', fmt:function (v){ return v + ' 天'; }, tip:null };
+      metricDefs[r2] = { f: (function (nm){ return function (b){
+                          var x = b.map(function (r){ return Number(r[nm]); }).filter(function (v){ return !isNaN(v); });
+                          return x.length ? Math.round(x.filter(function (v){ return v <= 0; }).length / x.length * 100) : 0; }; })(d.k),
+                         total:'rate', fmt:function (v){ return v + '%'; }, tip:'延期 ≤ 0 的占比' };
+      derivedNames.push(a2); derivedNames.push(m2); derivedNames.push(r2);
+    } else {
+      var k2 = d.k + ' 平均';
+      metricDefs[k2] = { f: (function (nm){ return function (b){ return avgNum(b.map(function (r){ return r[nm]; })); }; })(d.k),
+                         total:'avg', fmt:function (v){ return v + ' 天'; }, tip:d.from };
+      derivedNames.push(k2);
+    }
+  });
+  metricDefs['条数'] = { f: function (b){ return b.length; }, total:'sum', fmt:null, tip:'一共多少行' };
+  Object.keys(tailDefs).forEach(function (k){ metricDefs[k] = tailDefs[k]; });
+  var metricNames = ['条数'].concat(derivedNames).concat(idNames).concat(numNames);
+
+  return { name:name, headerRow:headerRow, markerRow:markerRow, rowCount:parsed.rows.length,
+           cols:cols, rows:rows, dims:dims, timeCols:timeCols, derived:derived,
+           metricNames:metricNames, metricDefs:metricDefs, topRow:live[0],
+           headerOk: headerOk, noHeader: !headerOk,
+           mergeCount:parsed.merges.length };
+}
+function avgNum(a){
+  var v = a.map(Number).filter(function (x){ return !isNaN(x); });
+  return v.length ? +(v.reduce(function (x, y){ return x + y; }, 0) / v.length).toFixed(1) : 0;
+}
+/* ==== XLSX-READER-END ==== */
+
+/* ==========================================================================
+   导入真实工作簿
+   ========================================================================== */
+var WB = null;          /* { fileName, sheets:[{name, table, headerIdx}] } —— TPLS 在演示数据那边已经声明，别重复声明把它冲掉 */
+
+function setFileLabel(){
+  var el = document.querySelector('.tb-file .nm');
+  if (el) el.textContent = WB ? WB.fileName : '示例数据（未导入文件）';
+  document.querySelector('.tb-file').title = WB ? WB.fileName : '示例数据';
+}
+
+/* —— 从解析出的表建出一张可统计的“数据源” —— */
+function pickDetailCols(t){
+  var keys = [], times = [], others = [];
+  t.cols.forEach(function (c){
+    if (/编号|编码|单号|^序号$/.test(c.name)) keys.push(c.name);
+    else if (isDateish(c)) times.push(c.name);
+    else if (/名称|零件|工序/.test(c.name)) others.push(c.name);
+  });
+  return keys.concat(t.derived.map(function (d){ return d.k; })).concat(times).concat(others).slice(0, 12);
+}
+function defaultsFor(t){
+  var dims = t.dims, times = t.timeCols, met = t.metricNames;
+  var pickIn = function (arr, re, get){
+    for (var i = 0; i < arr.length; i++) if (re.test(get ? get(arr[i]) : arr[i])) return arr[i];
+    return null;
+  };
+  var dim = pickIn(dims, /装配人|负责|设计|人$/, function (d){ return d.k; }) || dims[0];
+  var time = pickIn(times, /完工|完成|交模|送样/, function (d){ return d.k; })
+          || pickIn(times, /截止|计划/, function (d){ return d.k; }) || times[0];
+  var metrics = ['条数'];
+  var push = function (m){ if (m && metrics.indexOf(m) < 0 && metrics.length < 4) metrics.push(m); };
+  met.forEach(function (m){ if (/延期.*平均|工期.*平均/.test(m)) push(m); });
+  met.forEach(function (m){ if (/去重数/.test(m)) push(m); });
+  met.forEach(function (m){ if (metrics.length < 4 && !/求和/.test(m)) push(m); });
+  return { group: dim ? [dim.k] : [], metrics: metrics,
+           time: time ? { col: time.k, grain: 'month' } : null };
+}
+
+function buildSrcFromSheets(){
+  var out = {}, order = [], i = 0;
+  WB.sheets.forEach(function (sh){
+    var t = sh.table;
+    if (!t || t.rows.length < 5 || t.cols.length < 2) return;
+    var id = 's' + (i++);
+    var score = t.dims.length * 3 + t.timeCols.length * 2 + t.derived.length * 4
+              + Math.min(t.rows.length, 3000) / 300
+              + (/生产计划表|总计划表|计划/.test(t.name) ? 30 : 0);
+    out[id] = {
+      id: id, name: t.name, kind: t.rows.length + ' 行',
+      rows: t.rows, total: t.rows.length,
+      dims: t.dims, timeCols: t.timeCols, metrics: t.metricNames, metricDefs: t.metricDefs,
+      detailCols: pickDetailCols(t), keyCols: t.cols.filter(function (c){
+        return /编号|编码|单号/.test(c.name);
+      }).map(function (c){ return c.name; }),
+      colCount: t.cols.length, headerRow: t.headerRow, markerRow: t.markerRow,
+      hasHeader: !t.noHeader, mergeCount: t.mergeCount, score: score,
+      sheetIdx: sh.idx
+    };
+    out[id].defaults = defaultsFor(t);
+    order.push(id);
+  });
+  order.sort(function (a, b){ return out[b].score - out[a].score; });
+  SRC = out;
+  S.tableOrder = order;
+  return order.length;
+}
+
+function buildTemplates(){
+  TPLS = [];
+  S.tableOrder.forEach(function (id){
+    var s = SRC[id], d = s.defaults;
+    var dm = s.dims[0];
+    if (s.timeCols.length && dm){
+      TPLS.push({ s:id, n:'按月 × ' + dm.k, d:s.name, g:[dm.k],
+                  t:{ col:s.timeCols[0].k, grain:'month' }, m:d.metrics, v:'pivot' });
+    }
+    if (s.timeCols.length && s.dims[1]){
+      TPLS.push({ s:id, n:'按季 × ' + s.dims[1].k, d:s.name, g:[s.dims[1].k],
+                  t:{ col:s.timeCols[0].k, grain:'quarter' }, m:d.metrics });
+    }
+    if (s.dims.length >= 2 && TPLS.length < 14){
+      TPLS.push({ s:id, n:dm.k + ' × ' + s.dims[1].k, d:s.name, g:[dm.k, s.dims[1].k],
+                  t:null, m:d.metrics, v:'pivot' });
+    }
+  });
+  TPLS = TPLS.slice(0, 16);
+}
+
+/* 每张表的 key 列去和别的表对一遍，找到共同的就建联动（要给每张表都建，不能只给第一张） */
+function autoLink(){
+  var ids = S.tableOrder;
+  ids.forEach(function (id){
+    for (var j = 0; j < ids.length; j++){
+      if (ids[j] === id) continue;
+      var a = SRC[id], b = SRC[ids[j]];
+      for (var k = 0; k < a.keyCols.length; k++){
+        if (b.keyCols.indexOf(a.keyCols[k]) >= 0){
+          LINK[id] = { to:b.name, on:a.keyCols[k],
+            title:b.name + ' · 按 ' + a.keyCols[k],
+            why:'拿「' + a.keyCols[k] + '」到《' + b.name + '》里对一遍，把对方的列带过来一起看。',
+            out:[], sql:'<b>按</b> ' + a.keyCols[k] + ' <b>关联</b> ' + b.name };
+          return;
+        }
+      }
+    }
+  });
+}
+
+/* —— 导入 —— */
+function progress(msg, pct){
+  var el = $('#loadProg');
+  if (!el) return;
+  el.hidden = false;
+  el.innerHTML = '<div class="bar"><i style="width:' + Math.round((pct || 0) * 100) + '%"></i></div>' +
+                 '<div class="pt">' + esc(msg) + '</div>';
+}
+
+async function openFile(file){
+  if (!file) return;
+  try {
+    var t0 = Date.now();
+    progress('正在解压 ' + file.name + '（' + (file.size / 1048576).toFixed(1) + ' MB）…', 0.02);
+    var zip = await unzip(await file.arrayBuffer());
+    progress('读取工作表目录…', 0.12);
+    var shared = sharedStrings(await zip.text('xl/sharedStrings.xml'));
+    var dstyles = dateStyles(await zip.text('xl/styles.xml'));
+    var wbXml = await zip.text('xl/workbook.xml');
+    var relsXml = await zip.text('xl/_rels/workbook.xml.rels');
+
+    var relMap = {}, rm, rre = /<Relationship[^>]*Id="([^"]+)"[^>]*Target="([^"]+)"/g;
+    while ((rm = rre.exec(relsXml))) relMap[rm[1]] = rm[2].replace(/^\/?xl\//, '');
+    var list = [], sm, sre = /<sheet\b[^>]*\/>/g;
+    while ((sm = sre.exec(wbXml))){
+      list.push({
+        name: unesc((sm[0].match(/name="([^"]*)"/) || [])[1] || '?'),
+        target: relMap[(sm[0].match(/r:id="([^"]*)"/) || [])[1]]
+      });
+    }
+    if (!list.length) throw new Error('这个文件里没找到工作表');
+
+    WB = { fileName:file.name, sheets:[] };
+    for (var i = 0; i < list.length; i++){
+      progress('正在读表 ' + (i + 1) + '/' + list.length + '：' + list[i].name, 0.15 + 0.8 * i / list.length);
+      await new Promise(function (r){ setTimeout(r, 0); });
+      var t = null;
+      try {
+        var xml = list[i].target ? await zip.text('xl/' + list[i].target) : null;
+        if (xml) t = buildTable(parseSheet(xml, shared, dstyles), list[i].name);
+      } catch (e) { t = null; }
+      WB.sheets.push({ idx:i, name:list[i].name, table:t });
+    }
+    SRC = {}; 
+    if (LINK) Object.keys(LINK).forEach(function (k){ if (k !== 'master' && k !== 'plan') delete LINK[k]; });
+    var n = buildSrcFromSheets();
+    if (!n) throw new Error('这些工作表里没有能用的数据表（都要至少 5 行、2 列）');
+    autoLink();
+    buildTemplates();
+    FILE_NAME = file.name;
+    setFileLabel();
+    S.fileLoaded = true;
+    S.sheetFilter = '';
+    var first = S.tableOrder[0];
+    applyCfg({ src:first });
+    renderTpl();
+    renderStat();
+    renderSource();
+    renderNav();
+    progress('读完了：' + n + ' 张表可用 · ' + ((Date.now() - t0) / 1000).toFixed(1) + ' 秒', 1);
+    setTimeout(function (){ var e = $('#loadProg'); if (e) e.hidden = true; }, 1200);
+  } catch (err){
+    var e2 = $('#loadProg');
+    if (e2) e2.hidden = false;
+    if (e2) e2.innerHTML = '<div class="perr">读不了这个文件：' + esc(err.message || err) + '</div>';
+  }
+}
+
+/* —— ① 数据源页 —— */
+var SRC_GROUP_ICON = function (s){
+  if (s.timeCols.length >= 3 && s.dims.length >= 4) return '▦';
+  if (s.timeCols.length) return '▤';
+  return '▢';
+};
+function renderSource(){
+  var h = [];
+  h.push('<div class="page-title">选择数据表</div>');
+  h.push('<div class="page-sub">导入 Excel 后，这里会列出文件里<b>所有</b>工作表。点一下就用那张表做统计 —— ' +
+         '下面每张表列出的「可分组 / 可做时间轴 / 可算指标」都是<b>那张表真实有的列</b>。</div>');
+
+  /* 上传区 */
+  h.push('<div class="drop" id="dropZone">' +
+    '<div class="di">📂</div>' +
+    '<div class="dt">' + (WB ? '换一个 Excel 文件' : '把 Excel 拖进来，或点这里选择文件') + '</div>' +
+    '<div class="ds">支持 .xlsx / .xlsm（Excel、WPS 导出的都行）· 62 MB 也能读 · ' +
+    '手机可以从「文件」或微信/QQ 里选</div>' +
+    '<input type="file" id="fileInput" accept=".xlsx,.xlsm,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>' +
+    '<div id="loadProg" hidden></div>' +
+    '</div>');
+
+  if (!WB){
+    h.push('<div class="card"><div class="card-b">' +
+      '<div class="sub">还没导入文件。现在看到的是<b>示例数据</b>（按真实样本的结构造的），' +
+      '可以先点上面选文件，或者直接去「做统计」看看效果。</div>' +
+      '<div style="margin-top:11px"><button class="btn sm" data-nav="stat">先用示例数据看看 →</button></div>' +
+      '</div></div>');
+  } else {
+    var ok = WB.sheets.filter(function (s){ return s.table; }).length;
+    h.push('<div class="banner ok"><span class="ic">✓</span><div>' +
+      '<b>' + esc(WB.fileName) + '</b><br>' +
+      '共 ' + WB.sheets.length + ' 张工作表，' + ok + ' 张有可用数据，' +
+      '<b>' + S.tableOrder.length + ' 张</b>可以拿来统计。' +
+      (autoMerges() ? '合并单元格已自动向下填充。' : '') +
+      '</div></div>');
+  }
+
+  /* 表列表 */
+  var q = (S.sheetFilter || '').trim();
+  var rows = WB ? WB.sheets.filter(function (s){ return !q || s.name.indexOf(q) >= 0; }) : [];
+  h.push('<div class="card"><div class="card-h"><span>文件里的工作表</span>' +
+    '<span class="spacer"></span><span class="hint">点一行就选中它</span></div>');
+  if (WB){
+    h.push('<div style="padding:10px 15px 2px"><input id="sheetSearch" class="search" placeholder="搜索表名，比如「计划」「结存」「退」…" value="' + esc(q) + '"></div>');
+  }
+  h.push('<div id="sheetList">');
+  if (!WB){
+    h.push('<div class="empty"><div class="e">▦</div>还没导入文件</div>');
+  } else if (!rows.length){
+    h.push('<div class="empty"><div class="e">🔍</div>没有匹配「' + esc(q) + '」的表</div>');
+  } else {
+    rows.forEach(function (sh){
+      var t = sh.table;
+      var id = null;
+      for (var i = 0; i < S.tableOrder.length; i++)
+        if (SRC[S.tableOrder[i]].sheetIdx === sh.idx) { id = S.tableOrder[i]; break; }
+      var usable = !!id;
+      var on = usable && id === S.src;
+      if (!t){
+        /* 读不出来的表也要列出来，否则用户会以为表丢了 */
+        h.push('<div class="srow dead"><span class="dot"></span>' +
+          '<span class="sn">' + esc(sh.name) + '</span>' +
+          '<span class="sm">空表或没有可读数据</span>' +
+          '<span class="spacer"></span><span class="tag gray">跳过</span></div>');
+        return;
+      }
+      h.push('<button class="srow' + (on ? ' on' : '') + (usable ? '' : ' dead') + '"' +
+        (usable ? ' data-pick-sheet="' + id + '"' : '') + '>' +
+        '<span class="dot"></span>' +
+        '<span class="sn">' + esc(sh.name) + '</span>' +
+        '<span class="sm">' + t.rows.length.toLocaleString() + ' 行 × ' + t.cols.length + ' 列</span>' +
+        (t.noHeader ? '<span class="tag warn">没识别到表头</span>'
+                    : '<span class="tag ok">表头 r' + t.headerRow + '</span>') +
+        (t.markerRow ? '<span class="tag gray">跳过 r' + t.markerRow + ' 责任人行</span>' : '') +
+        '<span class="spacer"></span>' +
+        (usable
+          ? '<span class="tag info">' + t.dims.length + ' 列可分组</span>' +
+            '<span class="tag ' + (t.timeCols.length ? 'info' : 'gray') + '">' + t.timeCols.length + ' 个日期列</span>' +
+            '<span class="tag gray">' + t.metricNames.length + ' 个指标</span>'
+          : '<span class="tag gray">太短，跳过</span>') +
+        '</button>');
+    });
+  }
+  h.push('</div></div>');
+
+  /* 选中表的细项 */
+  if (WB && SRC[S.src]){
+    var s = SRC[S.src];
+    h.push('<div class="card"><div class="card-h"><span>《' + esc(s.name) + '》能统计什么</span>' +
+      '<span class="spacer"></span><span class="hint">换表后这里会跟着变</span></div><div class="card-b">' +
+      '<div class="field-label">可以按这些列分组<span class="tag gray">' + s.dims.length + ' 个</span></div>' +
+      '<div class="chips">' + (s.dims.map(function (d){
+        return '<span class="chip">' + esc(d.k) + '<span class="tag gray" style="margin-left:2px">' + d.card + ' 类</span></span>';
+      }).join('') || '<span class="sub">没有适合分组的列</span>') + '</div>' +
+      '<div class="field-label" style="margin-top:16px">可以当时间轴<span class="tag gray">' + s.timeCols.length + ' 个</span></div>' +
+      '<div class="chips">' + (s.timeCols.map(function (d){
+        return '<span class="chip">' + esc(d.k) + '<span class="tag info" style="margin-left:2px">' + d.t + '</span></span>';
+      }).join('') || '<span class="sub">这张表没有日期列，用不了时间维度</span>') + '</div>' +
+      '<div class="field-label" style="margin-top:16px">可以算的指标<span class="tag gray">' + s.metrics.length + ' 个</span></div>' +
+      '<div class="chips">' + s.metrics.map(function (m){ return '<span class="chip">' + esc(m) + '</span>'; }).join('') + '</div>' +
+      '<div style="margin-top:16px"><button class="btn pri sm" data-nav="stat">用这张表做统计 →</button></div>' +
+      '</div></div>');
+  }
+  $('#v-source').innerHTML = h.join('');
+}
+function autoMerges(){
+  var n = 0;
+  WB.sheets.forEach(function (s){ if (s.table) n += s.table.mergeCount; });
+  return n > 0;
+}
+
+/* ---------- 启动 ---------- */
+renderSource();
+renderTpl();
+renderStat();
+renderRules();
+renderNav();
+setFileLabel();
+$('#btnOpen').onclick = function (){
+  var f = $('#fileInput');
+  if (f) f.click(); else { $('#btnOpen').textContent = '去数据源页选文件'; go('source'); }
+};
+</script>
+</body>
+</html>

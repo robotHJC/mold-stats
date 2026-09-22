@@ -1,0 +1,15 @@
+# 样本 Excel（62MB，GitHub 单文件上限 100MB 而且没人需要下载它）
+*.xlsx
+*.xls
+*.xlsm
+
+# 工具产出的临时/报告文件
+tools/_probe/
+tools/_gen-cache/
+tools/_*-out.txt
+
+# 编辑器 / 系统
+.vs/
+.vscode/
+Thumbs.db
+desktop.ini
