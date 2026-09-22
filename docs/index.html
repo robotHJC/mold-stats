@@ -42,7 +42,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .topbar{
   position:sticky;top:0;z-index:30;background:#1b2735;color:#fff;
   padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));
-  display:flex;align-items:center;gap:10px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
 }
 .brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:.3px;white-space:nowrap}
 .brand .mark{width:26px;height:26px;border-radius:7px;flex:0 0 auto;background:linear-gradient(135deg,#4b9bff,#1f6feb);display:grid;place-items:center;font-size:14px}
@@ -304,6 +304,21 @@ select.ph{color:var(--muted)}
 .sdv.on b{color:#fff}
 .sd-clr{border:0;background:transparent;color:var(--bad);font-size:calc(12.5px * var(--fs,1));cursor:pointer;padding:3px 7px;font-family:inherit;border-radius:6px}
 .sd-clr:hover{background:#fdeceb}
+/* 细分那两上动作按钮：不是危险操作，所以不给红色。
+   「清除」「去掉这层」这种词用户看不懂，改成「↺ 显示全部」「− 移除细分」+ 中性配色。 */
+.sd-act{border:1px solid var(--line);background:#fff;color:var(--ink2);border-radius:20px;
+  padding:4px 11px;font:600 calc(12.5px * var(--fs,1))/1.45 inherit;cursor:pointer;white-space:nowrap;
+  display:inline-flex;align-items:center;gap:4px}
+.sd-act:hover{border-color:var(--brand);color:var(--brand-d);background:var(--brand-bg)}
+.sd-act.rm{color:var(--muted);background:#fafbfd}
+.sd-act.rm:hover{border-color:var(--line);color:var(--ink2);background:#f2f5f9}
+.sd-hint{color:var(--muted);font-size:calc(12px * var(--fs,1));margin-bottom:2px}
+/* 当前细分用的哪一列 —— select 加完就回位了，必须另外写出来 */
+.sb-cur{font-size:calc(12.5px * var(--fs,1));color:var(--ink2);background:#e8f1ff;
+  border:1px solid #c9dcf7;border-radius:20px;padding:4px 11px;white-space:nowrap}
+.sb-cur b{color:var(--brand-d)}
+/* 窄屏：细分栏里那句「· 这一组共 N 条」是重复的（组标题上已经有），收起来少占一行 */
+@media (max-width:640px){.gr-subbar .sub{display:none}}
 /* 组内的「加一个细分列」下拉 —— 从统计页搬到结果页，就在展开区域里 */
 .gr-subbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line2);background:#f4f8fd}
 .gr-subbar .sb-n{font-size:calc(12.5px * var(--fs,1));color:var(--ink2);font-weight:650}
@@ -406,12 +421,22 @@ table.rt td.drill.on{background:var(--brand);color:#fff;box-shadow:none}
 table.rt td.drill.on::after{content:' ▾'}
 
 /* ── 版本标签 + 有新版本提示 ── */
-.ver{font:600 11px/1 var(--mono);color:var(--muted);background:#eef2f7;border:1px solid var(--line);border-radius:20px;padding:4px 9px;white-space:nowrap}
+.ver{font:600 11px/1 var(--mono);color:var(--muted);background:#eef2f7;border:1px solid var(--line);border-radius:20px;padding:4px 9px;white-space:nowrap;flex:0 0 auto}
 /* ── 字号调节：--fs 由 JS 写，所有关键文字用 calc 乘上去 ── */
-.fsctl{display:inline-flex;align-items:center;gap:1px;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#fff}
+.fsctl{display:inline-flex;align-items:center;gap:1px;border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#fff;flex:0 0 auto}
 .fsctl button{border:0;background:#fff;font:600 12px/1 inherit;color:var(--ink2);padding:5px 8px;cursor:pointer}
 .fsctl button:hover{background:var(--brand-bg);color:var(--brand-d)}
 .fsctl b{font:600 11px/1 var(--mono);color:var(--muted);padding:0 2px;min-width:34px;text-align:center}
+/* 窄屏：顶栏换行，文件胶囊自己占一行 —— 否则 A+ 会被挤掉（.fsctl 有 overflow:hidden，
+   flex 一收缩就把右边那个按钮裁了，看起来像「只能减不能加」） */
+@media (max-width:640px){
+  .topbar{gap:8px}
+  .topbar .spacer{flex:1 1 auto;min-width:2px}
+  .brand,.ver,.fsctl,.btn-ghost{flex:0 0 auto}
+  .tb-file{order:9;flex:1 1 100%;max-width:none}
+  .fsctl button{padding:7px 11px;font-size:13px}
+  .fsctl b{min-width:30px}
+}
 .updbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:11px 14px;border-radius:var(--r-s);background:#fff5e6;border:1px solid #f0d6a8;color:#7a4d00;font-size:13px;line-height:1.65}
 .updbar .ic{font-size:16px}
 .updbar b{color:#5d3900}
@@ -775,7 +800,7 @@ var FILE_NAME = '2026年生产计划表) - 副本.xlsx';
 
 /* 页面版本 —— 单文件应用没有文件名/哈希可看，只能自己在角落摆一个。
    改完这个文件就把版本号 +1，部署后顶部会显示出来，对不上就是缓存。 */
-var APP_VER = '1.22';
+var APP_VER = '1.23';
 
 /* 简化模式：以某一列为主 + 选要看哪些列，把记录原样列出来。不做任何聚合。
    时间分组 / 聚合统计项 / 筛选条件还留在代码里，把这里改成 false 就整套回来。 */
@@ -1112,24 +1137,17 @@ function subOptions(src){
   return out;
 }
 
-/* 结果页每一组能选的细分列：**只看选了要显示的列**（第 3 步选了哪些，就用哪些），
-   日期列一律按「月份」分 —— 这就是「某个人某个月做了多少」。 */
+/* 结果页每一组能选的细分列：**只看第 3 步勾了要统计的那几列**，
+   不在那份清单里的不给选 —— 否则选了一列看不见的来细分，人会懵。
+   其中日期列一律按「月份」分 —— 这就是「某个人某个月做了多少」。 */
 function subOptionsForGroup(){
   var out = [], seen = {};
-  function push(o){
+  S.showCols.forEach(function (c){
+    if (c === S.primary) return;
+    var o = (colKind(c) === 'date') ? { col:c, grain:'month' } : { col:c, grain:null };
     var k = subKey(o);
     if (seen[k]) return;
     seen[k] = 1; out.push(o);
-  }
-  S.showCols.forEach(function (c){
-    if (c === S.primary) return;
-    if (colKind(c) === 'date') push({ col:c, grain:'month' });
-    else push({ col:c, grain:null });
-  });
-  /* 日期列哪怕没勾上也能按月份细分 —— 「这个人每个月做多少」是最常问的 */
-  var src = SRC_OF();
-  if (src) (src.timeCols || []).forEach(function (t){
-    if (t.k !== S.primary) push({ col:t.k, grain:'month' });
   });
   return out;
 }
@@ -2512,48 +2530,61 @@ function renderSimpleResult(){
       '</div>');
 
     if (open && drawn < CAP){
-      /* 组内选细分列 —— 从统计页搬过来的，就在展开区域的第一行 */
-      if (subOptionsAll.length){
-        var used = {};
-        dims.forEach(function (d){ used[subKey(d)] = 1; });
-        h.push('<div class="gr-subbar">' +
-          '<span class="sb-n">按什么细分</span>' +
-          '<select data-sub-add="' + i + '">' +
-            '<option value="">— 加一个细分列 —</option>' +
-            subOptionsAll.filter(function (o){ return !used[subKey(o)]; }).map(function (o){
-              return '<option value="' + esc(subKey(o)) + '">' + esc(subLabel(o)) + '</option>';
-            }).join('') +
-          '</select>' +
-          '<span class="sub">日期列按<b>月份</b>分 · 这一组共 <b>' + g.rows.length + '</b> 条</span>' +
-        '</div>');
-      }
+      /* 组内选细分列 —— 从统计页搬过来的，就在展开区域的第一行。
+         已经选上的要在这一行里写出来（叫「当前细分」），否则 select 一回位
+         就没人记得刚才选的是哪一列了。 */
+      var used = {};
+      dims.forEach(function (d){ used[subKey(d)] = 1; });
+      var free = subOptionsAll.filter(function (o){ return !used[subKey(o)]; });
+      h.push('<div class="gr-subbar">' +
+        '<span class="sb-n">按什么细分</span>' +
+        (free.length
+          ? '<select data-sub-add="' + i + '">' +
+              '<option value="">— 加一个细分列 —</option>' +
+              free.map(function (o){
+                return '<option value="' + esc(subKey(o)) + '">' + esc(subLabel(o)) + '</option>';
+              }).join('') +
+            '</select>'
+          : '<span class="sub">第 3 步勾的列都用上了' +
+            (subOptionsAll.length ? '' : '（没勾可细分的列）') + '</span>') +
+        (dims.length
+          ? '<span class="sb-cur">当前细分：' + dims.map(function (d){
+              return '<b>' + esc(subLabel(d)) + '</b>';
+            }).join('、') + '</span>'
+          : '') +
+        '<span class="sub">日期列按<b>月份</b>分 · 这一组共 <b>' + g.rows.length + '</b> 条</span>' +
+      '</div>');
 
       /* 细分筛选条 —— 想要哪个值点哪个，后面就是它的条数 */
       if (chips.length){
-        h.push('<div class="gr-sub">' + chips.map(function (c){
-          return '<div class="sd">' +
-            '<span class="sd-n">' + esc(subLabel(c.d)) + '</span>' +
-            c.ord.map(function (k){
-              var miss = (k === MISSSUB);
-              var on = sel[c.dk] && sel[c.dk][k];
-              return '<button class="sdv' + (on ? ' on' : '') + '"' +
-                ' data-sub-g="' + i + '" data-sub-key="' + esc(c.dk) + '"' +
-                (miss ? ' data-sub-miss="1"' : ' data-sub-v="' + esc(k) + '"') +
-                ' title="点一下只看这个值；再点一下取消">' +
-                esc(subShow(c.d, miss ? null : k)) + '<b>' + c.cnt[k] + '</b></button>';
-            }).join('') +
-            ((sel[c.dk] && Object.keys(sel[c.dk]).length)
-              ? '<button class="sd-clr" data-sub-clr="' + i + '" data-sub-key="' + esc(c.dk) + '">清除</button>'
-              : '') +
-            '<button class="sd-clr" data-sub-rm="' + i + '" data-sub-key="' + esc(c.dk) + '"' +
-              ' title="把这一个细分列整个拿掉">× 去掉这层</button>' +
-            '</div>';
-        }).join('') + '</div>');
+        h.push('<div class="gr-sub">' +
+          '<div class="sd-hint">看某个值有多少条，点它一下就行 —— 下面的行会只留那些；再点一下取消。</div>' +
+          chips.map(function (c){
+            var picked = sel[c.dk] && Object.keys(sel[c.dk]).length;
+            return '<div class="sd">' +
+              '<span class="sd-n">' + esc(subLabel(c.d)) + '</span>' +
+              c.ord.map(function (k){
+                var miss = (k === MISSSUB);
+                var on = sel[c.dk] && sel[c.dk][k];
+                return '<button class="sdv' + (on ? ' on' : '') + '"' +
+                  ' data-sub-g="' + i + '" data-sub-key="' + esc(c.dk) + '"' +
+                  (miss ? ' data-sub-miss="1"' : ' data-sub-v="' + esc(k) + '"') +
+                  ' title="点一下只看这个值；再点一下取消">' +
+                  esc(subShow(c.d, miss ? null : k)) + '<b>' + c.cnt[k] + '</b></button>';
+              }).join('') +
+              (picked
+                ? '<button class="sd-act" data-sub-clr="' + i + '" data-sub-key="' + esc(c.dk) + '"' +
+                  ' title="取消筛选，这一组又显示全部 ' + g.rows.length + ' 条">↺ 显示全部</button>'
+                : '') +
+              '<button class="sd-act rm" data-sub-rm="' + i + '" data-sub-key="' + esc(c.dk) + '"' +
+                ' title="不再按这一列细分（上面那排值会收起来）">− 移除细分</button>' +
+              '</div>';
+          }).join('') + '</div>');
       }
 
       if (!shown.length){
         h.push('<div class="gr-bd"><div class="empty"><div class="e">▦</div>' +
-          '这个筛选条件下没有记录 —— 点上面的「清除」或再点一下那个筛选值</div></div>');
+          '这个筛选条件下没有记录 —— 点上面的「↺ 显示全部」，或再点一下那个筛选值</div></div>');
       } else {
         var body = shown.slice(0, CAP - drawn);
         drawn += body.length;
