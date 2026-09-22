@@ -81,6 +81,8 @@ function gh(args) {
       ['版本号', /APP_VER\s*=\s*'([^']+)'/.exec(html)],
       ['缓存自检在（会自己抓一遍线上比对版本）', html.includes("cache: 'no-store'") && html.includes('updBar')],
       ['默认不预填的提醒在', html.includes('needTip') && html.includes('renderNeeds')],
+      ['导出范围（每组可勾）在', html.includes('data-exp') && html.includes('renderExpBar')],
+      ['不导出的组打印时隐藏', html.includes('.gr.noexp{display:none')],
       ['no-cache meta 在', html.includes('must-revalidate')],
     ];
     checks.forEach(([label, v]) => {

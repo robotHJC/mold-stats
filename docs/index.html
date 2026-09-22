@@ -333,6 +333,26 @@ select.ph{color:var(--muted)}
 .splbtn.off{background:#fff;border-color:var(--line);color:var(--muted);font-weight:500}
 .splbtn:hover{border-color:var(--brand)}
 .spltag{font-size:11px;color:var(--warn);background:var(--warn-bg);border-radius:4px;padding:1px 5px;margin-left:5px;font-weight:600}
+
+/* ── 导出范围：每组标题上一个勾选框，只影响导出，不改统计数字 ── */
+.expchk{display:inline-flex;align-items:center;gap:5px;font-size:calc(12px * var(--fs,1));
+  color:var(--ink2);cursor:pointer;padding:3px 9px;border:1px solid var(--line);border-radius:20px;
+  background:#fff;white-space:nowrap;user-select:none}
+.expchk:hover{border-color:var(--brand)}
+.expchk input{margin:0;width:15px;height:15px;accent-color:var(--brand);cursor:pointer}
+.gr.noexp{opacity:.72;border-style:dashed}
+.gr.noexp .gr-hd{background:#f6f7f9}
+.gr.noexp .gr-hd .nm{color:var(--muted)}
+.gr.noexp .expchk{border-color:#e2c9c6;background:#fdf3f2;color:#8c2f27}
+.noexp-tag{font-size:11px;font-weight:700;color:#8c2f27;background:var(--bad-bg);border-radius:4px;padding:2px 6px}
+#expBar{padding:0 15px 12px}
+.expbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 12px;border-radius:var(--r-s);
+  background:#f4f8fd;border:1px solid #d9e6f7;font-size:calc(12.5px * var(--fs,1))}
+.expbar b{font-family:var(--mono);font-size:calc(15px * var(--fs,1));color:var(--brand-d);font-weight:800}
+.expbar .warnx{color:var(--warn);font-weight:650}
+.expbar .sp2{flex:1;min-width:8px}
+/* ⚠ 打印/存 PDF 也是导出 —— 不勾的组不能出现在纸上 */
+@media print{.gr.noexp{display:none !important}}
 /* 校验结果 */
 .ckrow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
 .ckrow:hover{background:#f7f9fc}
@@ -740,6 +760,12 @@ window.addEventListener('error', function (ev) {
       </div>
 
       <div class="card">
+        <div class="card-h">
+          <span>导出</span>
+          <span class="spacer"></span>
+          <span class="hint">导出范围可以在每一组的标题上单独勾</span>
+        </div>
+        <div id="expBar"></div>
         <div class="export">
           <button class="btn pri" id="expPng">导出图片（.png）</button>
           <button class="btn" id="expXlsx">导出 Excel（.xlsx）</button>
@@ -800,7 +826,7 @@ var FILE_NAME = '2026年生产计划表) - 副本.xlsx';
 
 /* 页面版本 —— 单文件应用没有文件名/哈希可看，只能自己在角落摆一个。
    改完这个文件就把版本号 +1，部署后顶部会显示出来，对不上就是缓存。 */
-var APP_VER = '1.23';
+var APP_VER = '1.24';
 
 /* 简化模式：以某一列为主 + 选要看哪些列，把记录原样列出来。不做任何聚合。
    时间分组 / 聚合统计项 / 筛选条件还留在代码里，把这里改成 false 就整套回来。 */
@@ -1184,6 +1210,16 @@ function rowMatchesGroup(r, g){
   var parts = primParts(r);
   if (parts && rowSplits(r)) return parts.indexOf(String(g.key)) >= 0;
   return String(v) === String(g.key);
+}
+
+/* 这一组要不要导出。
+   **只影响导出，不改统计** —— 屏幕上的条数、组数、各组明细、校验全部照旧。
+   没表过态就按默认：「主列为空」那一组默认不导出（它本来就没有名字），其余都导出。
+   有人会问「那干脆删掉不行吗」—— 不行：删了各处条数都会变（那是 × 干的事），
+   而这里要的是「统计里还看得见，发出去的时候不要」。 */
+function expOn(g){
+  var v = (S.expPick || {})[g.key];
+  return (v === undefined) ? !g.miss : !!v;
 }
 
 /* ── 字号：顶栏 A− / A+。只改一个 CSS 变量，表格/标题/按钮全跟着变 ──
@@ -1622,6 +1658,7 @@ var S = {
   grDims:{},                             /* 结果页每一组自己加的细分列：{组值: [{col,grain}]} */
   subSel:{},                             /* 每一组各选了哪些细分值：{组值: {细分列key: {值:1}}} */
   splitRow:{},                           /* 一格多人的逐条覆盖：{__rid: true/false} */
+  expPick:{},                            /* 导出范围：{组值: true/false} —— 不勾的不进导出 */
   fontScale:1,                           /* 字号倍率 */
   openSet:{},                            /* 分组卡片的展开状态 */
   groupBy:[],                            /* 附加分组：在主索引之后再细分 */
@@ -1729,6 +1766,7 @@ function applyCfg(cfg){
   if (cfg.src !== prevSrc){ S.deleted = {}; }
   S.subSel = {};
   S.grDims = {};
+  S.expPick = {};
 
   if (UI_SIMPLE){
     /* 时间轴 / 附加分组 / 筛选条件先屏蔽 —— 留着代码，改 UI_SIMPLE 就回来 */
@@ -2395,6 +2433,8 @@ function renderSimpleResult(){
     all.forEach(function (r){ if (isBlank(r[c])) n++; });
     if (n) blanks[c] = n;
   });
+  var noExpList = grps.filter(function (g){ return !expOn(g); });
+  var noExpN = noExpList.length;
   $('#resSql').innerHTML =
     '<b>取</b> ' + esc(src.name) + '（' + all.length + ' 行）' +
     '\n<b>主</b> ' + esc(S.primary || '（未选）') +
@@ -2409,6 +2449,12 @@ function renderSimpleResult(){
                '当前<b>没有拆开</b>，整格当一个名字算')
             : '没有一格多人的写法')) +
     '\n<b>删除</b> ' + (delN ? ('已从本次统计里排除 ' + delN + ' 条（未改动原文件）') : '没有排除任何记录') +
+    '\n<b>导出范围</b> ' + (noExpN
+        ? ('已标记 ' + noExpN + ' 组不导出 —— 统计里照样算它们，只是导出的文件里没有。' +
+           '不导出的组：' + noExpList.map(function (g){
+              return esc(g.miss ? '（' + S.primary + '为空）' : g.key);
+            }).join('、'))
+        : ('全部 ' + grps.length + ' 组都会导出')) +
     '\n<b>空缺</b> ' + (Object.keys(blanks).length
         ? Object.keys(blanks).map(function (c){ return esc(c) + ' ' + blanks[c] + ' 条'; }).join('；')
         : '所选列都有值');
@@ -2450,10 +2496,13 @@ function renderSimpleResult(){
   var CAP = 4000, drawn = 0, total = all.length;
   var chkCols = (S.primary ? [S.primary] : []).concat(cols);
   var blankRows = all.filter(function (r){ return rowHasBlank(r, chkCols); });
+  var excludedN = grps.filter(function (g){ return !expOn(g); }).length;
   var h = [];
   h.push('<div class="gr-tools">' +
     '<span class="sub">共 <b>' + grps.length + '</b> 组 · <b>' + all.length + '</b> 条记录' +
-      (blankRows.length ? ' · 其中 <b>' + blankRows.length + '</b> 条有<b>空缺</b>' : '') + '</span>' +
+      (blankRows.length ? ' · 其中 <b>' + blankRows.length + '</b> 条有<b>空缺</b>' : '') +
+      (excludedN ? ' · <span style="color:var(--warn)">导出 <b>' + (grps.length - excludedN) + '</b>/' + grps.length + ' 组</span>' : '') +
+    '</span>' +
     '<span style="flex:1"></span>' +
     (blankRows.length
       ? '<button class="btn sm" data-del-blank="1">删掉所有带空缺的（' + blankRows.length + ' 条）</button>'
@@ -2475,12 +2524,15 @@ function renderSimpleResult(){
      算得跟渲染不一致 —— 点一下反而把已经展开的收起来了。 */
   var openFirst = 0;
   var openFlags = [];
-  var allShown = [];          /* 各组细分筛完之后的记录，按组顺序 —— 导出就照这个来 */
-  var shownOf = {};           /* 每组实际显示了几行 */
+  var allShown = [];          /* 各组细分筛完之后的记录，按组顺序 —— **只装要导出的组** */
+  var shownOf = {};           /* 每组实际显示了几行（不分组，核对要用） */
+  var expGroups = [], noExpNames = [];
   var subOptionsAll = subOptionsForGroup();
   grps.forEach(function (g, i){
     var open = (S.openSet[g.key] === undefined) ? (i < openFirst) : !!S.openSet[g.key];
     openFlags[i] = open;
+    var exporting = expOn(g);
+    if (exporting) expGroups.push(g); else noExpNames.push(g);
 
     /* 细分：先算好每个细分列在这一组里的取值分布，再按选中的筛一遍。
        每个组各选各的 —— 「在某个装配人下面看某个月」就是这个意思。 */
@@ -2514,16 +2566,25 @@ function renderSimpleResult(){
       });
     }
     var filtered = (shown.length !== g.rows.length);
-    allShown = allShown.concat(shown);
+    /* 不导出的组仍然照样画、照样数，只是不进 rowsOut */
+    if (exporting) allShown = allShown.concat(shown);
     shownOf[g.key] = shown.length;
 
-    h.push('<div class="gr' + (open ? ' open' : '') + (g.miss ? ' misskey' : '') + '">' +
+    h.push('<div class="gr' + (open ? ' open' : '') + (g.miss ? ' misskey' : '') +
+      (exporting ? '' : ' noexp') + '">' +
       '<div class="gr-hd" data-gr-toggle="' + i + '">' +
         '<span class="nm">' + (g.miss ? '（' + esc(S.primary || '主列') + '为空）' : esc(g.key)) + '</span>' +
         '<span class="n">' + (filtered
             ? '<b class="bigN">' + shown.length + '</b><span class="bigN dim">/ ' + g.rows.length + ' 条</span>'
             : '<b class="bigN">' + g.rows.length + '</b><span class="bigN dim">条</span>') + '</span>' +
+        (exporting ? '' : '<span class="noexp-tag">不导出</span>') +
         '<span class="sp"></span>' +
+        '<label class="expchk" data-exp="' + i + '" title="' +
+          (exporting ? '现在会导出这一组（共 ' + g.rows.length + ' 条）· 点一下就不导出'
+                     : '现在不导出这一组 · 点一下就恢复导出') +
+          ' —— 只影响导出，不影响上面的统计数字">' +
+          '<input type="checkbox"' + (exporting ? ' checked' : '') + '>' +
+          '<span>导出</span></label>' +
         '<button class="vfbtn" data-verify="' + i + '"' +
           ' title="在原表里核对这一组的行：只读打开，不改 Excel 文件、不改统计结果">原表核对</button>' +
         '<span class="caret">' + (open ? '▾ 收起' : '▸ 展开') + '</span>' +
@@ -2620,13 +2681,42 @@ function renderSimpleResult(){
     h.push('<div class="card"><div class="card-b sub">屏幕上只画了前 <b>' + CAP +
       '</b> 条。导出 Excel / CSV 拿到的还是<b>全部 ' + total + '</b> 条。</div></div>');
   }
-  /* 导出 = 屏幕上筛出来的那些（含各组细分筛选），所见即所得 */
+function renderExpBar(){
+  var box = $('#expBar');
+  if (!box) return;
+  var L = S.last || {};
+  var grps = L.groups || [];
+  if (!grps.length || !S.primary){ box.innerHTML = ''; return; }
+  var no = L.noExp || [];
+  var expN = grps.length - no.length;
+  box.innerHTML = '<div class="expbar">' +
+    '<span>导出范围：<b>' + expN + '</b> / ' + grps.length + ' 组 · <b>' +
+      (L.expRows || 0) + '</b> 条' +
+      (no.length ? '（全量 ' + (L.allRows || 0) + ' 条）' : '') + '</span>' +
+    (no.length
+      ? '<span class="warnx">不导出：' + no.map(function (g){
+          return esc(g.miss ? '（' + S.primary + '为空）' : g.key) + '（' + g.rows.length + '）';
+        }).join('、') + '</span>'
+      : '<span class="sub">全部组都会导出</span>') +
+    '<span class="sp2"></span>' +
+    '<button class="btn sm" data-exp-all="1">全选</button>' +
+    '<button class="btn sm" data-exp-none="1">全不选</button>' +
+    '<button class="btn sm" data-exp-miss="1">只排除空主列</button>' +
+    '</div>';
+}
+
+/* 导出 = 屏幕上筛出来的那些（含各组细分筛选），走进导出那个开关的组，所见即所得 */
   S.last.rowsOut = allShown;
   S.last.subFiltered = (allShown.length !== all.length);
   S.last.shownOf = shownOf;      /* 每组实际显示了几行 —— 核对报告要用来分辨「你自己筛掉的」 */
   S.last.openFlags = openFlags;  /* 每组当前是不是展开的 —— 点击事件照这个反转 */
   S.last.subOptions = subOptionsAll;
+  S.last.expGroups = expGroups;
+  S.last.noExp = noExpNames;
+  S.last.expRows = allShown.length;
+  S.last.allRows = all.length;
   $('#simpleResult').innerHTML = h.join('');
+  renderExpBar();
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -3291,6 +3381,11 @@ function metaLines(){
         ((L.rowsOut || []).length) + ' 条（不是全部）');
     }
     lines.push('去重：没有做任何去重 —— 一条原始记录就是一行结果');
+    lines.push('导出范围：' + ((L.noExp && L.noExp.length)
+      ? ('已排除 ' + L.noExp.length + ' 组（' +
+         L.noExp.map(function (g){ return g.miss ? '（' + S.primary + '为空）' : g.key; }).join('、') +
+         '）—— 统计里照样算，只是不在导出文件里')
+      : ('全部 ' + ((L.groups || []).length) + ' 组')));
     lines.push('一格多人：' + (S.splitMulti
       ? '「赖学文/覃志坚」这类按 / 、拆开各算一次'
       : '不拆，整格当一个名字算') +
@@ -3894,6 +3989,26 @@ document.addEventListener('click', function (e){
 
   if ((el = e.target.closest('[data-nav]'))){ go(el.dataset.nav); return; }
 
+  /* ── 导出范围：整组勾 / 不勾。必须在 [data-gr-toggle] 之前返回，
+     否则点勾选框会顺手把分组展开收起（复选框的 change 自己会处理）。 */
+  if (e.target.closest('[data-exp]')) return;
+  if (e.target.closest('[data-exp-all]')){
+    S.expPick = {};
+    ((S.last && S.last.groups) || []).forEach(function (g){ S.expPick[g.key] = true; });
+    renderResult(); return;
+  }
+  if (e.target.closest('[data-exp-none]')){
+    S.expPick = {};
+    ((S.last && S.last.groups) || []).forEach(function (g){ S.expPick[g.key] = false; });
+    renderResult(); return;
+  }
+  if (e.target.closest('[data-exp-miss]')){
+    /* 只把「主列为空」那组排除，其余全部恢复导出 */
+    S.expPick = {};
+    ((S.last && S.last.groups) || []).forEach(function (g){ if (!g.miss) S.expPick[g.key] = true; });
+    renderResult(); return;
+  }
+
   if ((el = e.target.closest('[data-grp]'))){
     var id = el.dataset.grp, i = S.openGroups.indexOf(id);
     if (i >= 0) S.openGroups.splice(i, 1); else S.openGroups.push(id);
@@ -4173,6 +4288,20 @@ document.addEventListener('change', function (e){
     S.splitRow = {};            /* 改了默认值，逐条的覆盖全部清掉，回到统一口径 */
     saveCfg();
     renderStat(); renderCheckIfOpen(); return;
+  }
+  /* 导出范围：某一组勾上/取消。
+     注意 data-exp 挂在 <label> 上，触发 change 的是里面的 <input> ——
+     必须用 closest 找回去，直接读 e.target.dataset.exp 永远是 undefined，
+     勾了等于没勾（看着像功能没生效）。 */
+  var expLab = e.target.closest && e.target.closest('[data-exp]');
+  if (expLab && e.target.type === 'checkbox'){
+    var expG = (S.last && S.last.groups) ? S.last.groups[+expLab.dataset.exp] : null;
+    if (expG){
+      S.expPick = S.expPick || {};
+      S.expPick[expG.key] = !!e.target.checked;
+      renderResult();
+    }
+    return;
   }
   var el = e.target.closest('[data-c-col]');
   if (el){ var c = S.conds[+el.dataset.cCol]; c.col = el.value; c.val = ''; c.val2 = ''; renderStat(); return; }
