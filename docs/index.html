@@ -238,6 +238,8 @@ table.rt tbody tr.dup td:first-child{box-shadow:inset 3px 0 0 var(--bad);font-we
 .dupbadge{display:inline-block;margin-left:6px;padding:1px 5px;border-radius:5px;background:var(--bad);color:#fff;font-size:10.5px;font-weight:700;font-family:var(--mono);vertical-align:1px}
 .dupbadge.soft{background:#e7edf5;color:#5b6b7d}
 .chip.dup{background:#fdeceb;border-color:#f2c3bf;color:#8c2f27}
+/* 合计不是「把上面那列加起来」的标记 */
+.naMark{display:inline-block;margin-left:5px;padding:0 4px;border-radius:4px;background:#fff4e0;color:#8a5a00;font-size:10px;font-weight:700;font-family:var(--mono);vertical-align:1px}
 
 .bars{padding:14px 15px}
 .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
@@ -479,8 +481,8 @@ window.addEventListener('error', function (ev) {
 
       <div class="card" id="blankCard" hidden>
         <div class="card-h">
-          <span class="step">?</span><span>有行没被算进去</span>
-          <span class="spacer"></span><span class="hint">空值不会静默跳过</span>
+          <span class="step">?</span><span>统计口径提醒</span>
+          <span class="spacer"></span><span class="hint">空值、去重、合计的坑都在这</span>
         </div>
         <div class="card-b" id="blankBox"></div>
       </div>
@@ -841,7 +843,7 @@ var AGGS = [
   /* n = 下拉里的说法；sn = 拼进指标名里的短名（如 模具编号 · 有效数） */
   { k:'rows',  n:'行数（整组，不看本列）', sn:'行数',   ok:['id','text','num','date'] },
   { k:'count', n:'计数（本列有值的行）',   sn:'有效数', ok:['id','text','num','date'] },
-  { k:'uniq',  n:'去重计数',              sn:'去重数', ok:['id','text','num','date'] },
+  { k:'uniq',  n:'去重计数（不同值有几个）', sn:'去重数', ok:['id','text','num','date'] },
   { k:'sum',   n:'求和',                  sn:'合计',   ok:['num'] },
   { k:'avg',   n:'平均',                  sn:'平均',   ok:['num'] },
   { k:'max',   n:'最大值',                sn:'最大',   ok:['num'] },
@@ -924,6 +926,10 @@ function aggDef(col, agg){
   return {
     f: f,
     total: agg === 'avg' ? 'avg' : agg === 'max' ? 'max' : agg === 'min' ? 'min' : 'sum',
+    /* 能不能把各行的数**直接相加**得到合计？
+       只有求和/计数/行数能；去重数、平均、最大、最小都不能。
+       交叉表的「合计」列和界面上的标记靠它。 */
+    additive: (agg === 'sum' || agg === 'count' || agg === 'rows'),
     fmt: null,
     tip: agg === 'rows' ? '这一组有多少行 —— 不管本列填没填'
                        : '「' + col + '」的' + AGG_NAME[agg],
@@ -1029,6 +1035,57 @@ function blankReport(rows){
       }).filter(function (o){ return o.n > 0; })
     });
   });
+  return rep;
+}
+
+/* 去重数为什么不能相加 —— 一套模具被两个人做过，两个人的去重数里都有它。
+   合计行给的是**真实不重复数**，所以列加起来会比合计大。
+   不说清楚的话，别人拿计算器一加对不上，就会以为工具算错了。 */
+function nonAddReport(rows){
+  var rep = [];
+  if (!rows.length || !S.primary) return rep;
+  var gOf = function (r){ return isBlank(r[S.primary]) ? '—' : String(r[S.primary]); };
+
+  S.aggs.forEach(function (a){
+    if (a.agg !== 'uniq') return;      /* 只有去重会「多算」；平均/最大/最小是另一个道理，单独说 */
+    var def = aggDef(a.col, a.agg);
+    if (def.additive) return;
+    var g = {};
+    rows.forEach(function (r){
+      var v = r[a.col];
+      if (isBlank(v)) return;
+      var k = String(v).trim();
+      (g[k] = g[k] || {})[gOf(r)] = 1;
+    });
+    var shared = 0, sumOver = 0;
+    Object.keys(g).forEach(function (k){
+      var n = Object.keys(g[k]).length;
+      sumOver += n;
+      if (n > 1) shared++;
+    });
+    if (!shared) return;
+    rep.push({ metric: aggKey(a.col, a.agg), col: a.col, agg: a.agg,
+               shared: shared, sumOver: sumOver, distinct: Object.keys(g).length,
+               dim: S.primary });
+  });
+
+  /* 平均的合计是「全局平均」，也不是把各组平均再平均一遍 */
+  S.aggs.forEach(function (a){
+    if (a.agg !== 'avg') return;
+    var m = aggKey(a.col, a.agg);
+    var sizes = {};
+    rows.forEach(function (r){
+      if (isBlank(r[a.col]) || isNaN(Number(r[a.col]))) return;
+      var k = gOf(r);
+      sizes[k] = (sizes[k] || 0) + 1;
+    });
+    var vals = Object.keys(sizes).map(function (k){ return sizes[k]; });
+    if (vals.length < 2) return;
+    var mx = Math.max.apply(null, vals), mn = Math.min.apply(null, vals);
+    if (mx === mn) return;             /* 每组一样多，平均再平均就等于全局平均 */
+    rep.push({ metric: m, col: a.col, agg: 'avg', dim: S.primary, unbalanced: true, mx: mx, mn: mn });
+  });
+
   return rep;
 }
 
@@ -1368,7 +1425,9 @@ function fillAggKind(){
     var k = colKind(col);
     hint.innerHTML = '「' + esc(col) + '」是' + ({ id:'编号', text:'文字', num:'数字', date:'日期' }[k]) +
       '列，可以：' + list.map(function (a){ return a.n; }).join(' / ') +
-      '。<br><b>计数</b>只数这一列真填了值的行；想连空行一起数就选<b>行数</b>。';
+      '。<br><b>计数</b>只数这一列真填了值的行；想连空行一起数就选<b>行数</b>。' +
+      '<br><b>去重数</b>是「不同的值有几个」—— 各行的去重数<b>不能相加</b>：' +
+      '一套模具被两个人做过，两个人的去重数里都有它，加起来就多算一套。';
   }
 }
 
@@ -1608,6 +1667,16 @@ function compute(){
 function totalOf(m, out){
   var def = METRIC_DEF[m];
   if (!out.length || !def) return '';
+
+  /* 「列 × 算法」类指标：合计 = 把**同一个算法**作用在全部命中行上。
+     绝不是把各组的数字再聚一遍 —— 那样会错两次：
+       · 去重数：一套模具被两个人做过，两个人的去重数里都有它，
+         相加就比真实套数多（一副模具算了两套）
+       · 平均  ：各组行数不一样，平均再平均 ≠ 全局平均
+     老指标（DEMO_METRIC_DEF 里那些）没有绑定列，退回按 total 字段聚合。 */
+  var rows = (S.last && S.last.rows) || null;
+  if (rows && rows.length && def.col && typeof def.f === 'function') return def.f(rows);
+
   var n = out.reduce(function (a, o){ return a + o.__n; }, 0);
   if (def.total === 'sum') return out.reduce(function (a, o){ return a + o[m]; }, 0);
   if (def.total === 'avg') return avg(out.map(function (o){ return o[m]; }));
@@ -1660,40 +1729,74 @@ function renderDupCard(dup, total, redOn, dupRows){
     '</div>';
 }
 
-/* 空值被跳过了多少 —— 必须说清楚，不能默默少算 */
-function renderBlankCard(rep){
+/* 空值被跳过了多少 + 哪些合计不能直接相加 —— 必须说清楚，不能默默少算/多算 */
+function renderBlankCard(rep, nonAdd){
   var card = $('#blankCard'), box = $('#blankBox');
   if (!card || !box) return;
-  if (!rep || !rep.length){ card.hidden = true; box.innerHTML = ''; return; }
+  nonAdd = nonAdd || [];
+  if ((!rep || !rep.length) && !nonAdd.length){ card.hidden = true; box.innerHTML = ''; return; }
   card.hidden = false;
-  box.innerHTML = rep.map(function (r){
-    var total = r.blank + r.nonNum, why = [];
-    if (r.blank) why.push('<b>' + r.blank + '</b> 行在「' + esc(r.col) + '」这一列是<b>空的</b>');
-    if (r.nonNum) why.push('<b>' + r.nonNum + '</b> 行填的不是数字（算不了' + esc(AGG_NAME[r.agg]) + '）');
-    var h = '<div style="margin-bottom:16px">' +
-      '<div><b>' + esc(r.metric) + '</b>：' + why.join('，') +
-      ' —— 这 <b>' + total + '</b> 行<b>没被算进去</b>。</div>';
-    if (r.covered.length){
-      h += '<div class="sub" style="margin-top:6px">但这些行在你选的别的统计项里<b>是有值的</b>，那边照常算：' +
-        r.covered.map(function (c){ return '「' + esc(c.metric) + '」<b>' + c.n + '</b> 行'; }).join('，') + '。</div>';
-    } else if (S.aggs.length > 1){
-      h += '<div class="sub" style="margin-top:6px">你选的另外几个统计项在这些行上也是空的 —— ' +
-        '那几行可能整条都没填完整。</div>';
-    }
-    if (r.groups.length){
-      h += '<div class="sub" style="margin-top:6px">集中在这些「' + esc(S.primary || '记录') + '」上：' +
-        r.groups.map(function (g){ return '<b>' + esc(g) + '</b>（' + r.byGroup[g] + '）'; }).join('、') +
-        (r.groupN > r.groups.length ? ' …共 ' + r.groupN + ' 个' : '') + '。</div>';
-    }
-    return h + '</div>';
-  }).join('') +
-  '<div class="sub" style="border-top:1px solid var(--line2);padding-top:11px;line-height:1.8">' +
-    '规则：<b>计数 / 去重数 / 合计 / 平均</b> 都只吃它自己那一列的值，<b>空值不参与</b> —— ' +
+
+  var html = '';
+
+  /* —— ① 空值没算进去 —— */
+  if (rep && rep.length){
+    html += rep.map(function (r){
+      var total = r.blank + r.nonNum, why = [];
+      if (r.blank) why.push('<b>' + r.blank + '</b> 行在「' + esc(r.col) + '」这一列是<b>空的</b>');
+      if (r.nonNum) why.push('<b>' + r.nonNum + '</b> 行填的不是数字（算不了' + esc(AGG_NAME[r.agg]) + '）');
+      var h = '<div style="margin-bottom:16px">' +
+        '<div><b>' + esc(r.metric) + '</b>：' + why.join('，') +
+        ' —— 这 <b>' + total + '</b> 行<b>没被算进去</b>。</div>';
+      if (r.covered.length){
+        h += '<div class="sub" style="margin-top:6px">但这些行在你选的别的统计项里<b>是有值的</b>，那边照常算：' +
+          r.covered.map(function (c){ return '「' + esc(c.metric) + '」<b>' + c.n + '</b> 行'; }).join('，') + '。</div>';
+      } else if (S.aggs.length > 1){
+        h += '<div class="sub" style="margin-top:6px">你选的另外几个统计项在这些行上也是空的 —— ' +
+          '那几行可能整条都没填完整。</div>';
+      }
+      if (r.groups.length){
+        h += '<div class="sub" style="margin-top:6px">集中在这些「' + esc(S.primary || '记录') + '」上：' +
+          r.groups.map(function (g){ return '<b>' + esc(g) + '</b>（' + r.byGroup[g] + '）'; }).join('、') +
+          (r.groupN > r.groups.length ? ' …共 ' + r.groupN + ' 个' : '') + '。</div>';
+      }
+      return h + '</div>';
+    }).join('');
+  }
+
+  /* —— ② 合计不是「把上面那列加起来」 —— */
+  if (nonAdd.length){
+    html += nonAdd.map(function (r){
+      if (r.unbalanced){
+        return '<div style="margin-bottom:16px">' +
+          '<div><b>' + esc(r.metric) + '</b>：合计行给的是<b>全局平均</b>（直接拿全部原始行算），' +
+          '不是把上面每行的平均再平均一遍。</div>' +
+          '<div class="sub" style="margin-top:6px">因为每个「' + esc(r.dim) +
+          '」手上的行数不一样（最多的 ' + r.mx + ' 行、最少的 ' + r.mn +
+          ' 行），平均再平均会被小样本拉偏。</div></div>';
+      }
+      return '<div style="margin-bottom:16px">' +
+        '<div><b>' + esc(r.metric) + '</b>：有 <b>' + r.shared + '</b> 个「' + esc(r.col) +
+        '」是<b>跨多个「' + esc(r.dim) + '」</b>的。</div>' +
+        '<div class="sub" style="margin-top:6px">所以上面那一列<b>加起来是 ' + r.sumOver +
+        '</b>，而真实<b>不重复</b>的只有 <b>' + r.distinct + '</b> —— 合计行给的是 <b>' + r.distinct +
+        '</b>。同一套模具被两个人做过，它不该被算成两套。</div>' +
+        '<div class="sub" style="margin-top:6px">要「谁做了多少套」看每行；' +
+        '要「一共多少套」看合计。</div></div>';
+    }).join('');
+  }
+
+  html += '<div class="sub" style="border-top:1px solid var(--line2);padding-top:11px;line-height:1.8">' +
+    '<b>计数 / 去重数 / 合计 / 平均</b> 都只吃它自己那一列的值，<b>空值不参与</b> —— ' +
     '这是 SQL 里 <span class="mono">COUNT(列) / SUM(列) / AVG(列)</span> 的标准做法。' +
     '要连空行一起数，用<b>「行数」</b>那个统计项（它不看本列）。' +
-    '<br>如果这些行确实该计入，就得回原始表把空格补上 —— ' +
+    '<br><b>合计 = 把同一个算法作用在全部命中行上</b>，不是把上面那列再聚一遍。' +
+    '所以带 <span class="naMark">≠Σ</span> 标记的列，自己加起来和合计对不上是<b>正常的</b>。' +
+    '<br>如果这些空行确实该计入，就得回原始表把空格补上 —— ' +
     '<b>统计工具不该替你猜哪格是漏填。</b>' +
   '</div>';
+
+  box.innerHTML = html;
 }
 
 function renderResult(){
@@ -1717,10 +1820,12 @@ function renderResult(){
     (gname || '整表') + '】 · ' + condTxt + ' · 命中 ' + rows.length + ' 条';
   renderDetail(rows);
 
-  /* 空值被跳过了多少行 —— 逐项交代 */
+  /* 空值被跳过了多少行 + 哪些合计不能直接相加 —— 逐项交代 */
   var blanks = blankReport(rows);
+  var nonAdd = nonAddReport(rows);
   S.last.blanks = blanks;
-  renderBlankCard(blanks);
+  S.last.nonAdd = nonAdd;
+  renderBlankCard(blanks, nonAdd);
   if (!S.metrics.length || !out.length){
     $('#resAnswer').innerHTML = !S.metrics.length
       ? '<div class="t">还没法算</div>回到「做统计」，第 3 步里<b>至少加一个统计项</b>（选一列 + 选怎么算）。'
@@ -1825,7 +1930,12 @@ function renderResult(){
       if (i === 0) return '<td>合计</td>';
       if (dm.map(dimName).indexOf(c) >= 0) return '<td></td>';
       var t = totalOf(c, out);
-      return '<td class="' + (typeof t === 'number' ? 'num' : '') + '">' + esc(fmt(c, t)) + '</td>';
+      /* 不能相加的指标，标一个≠Σ，否则别人会拿计算器把上面那列加起来对不上 */
+      var d = METRIC_DEF[c] || {};
+      var mark = (d.additive === false)
+        ? '<span class="naMark" title="这个合计不是在把上面那列加起来 —— 去重数/平均/最大/最小都不能直接相加">≠Σ</span>'
+        : '';
+      return '<td class="' + (typeof t === 'number' ? 'num' : '') + '">' + esc(fmt(c, t)) + mark + '</td>';
     }).join('') + '</tr></tfoot></table>';
 
   /* 排行图 */
@@ -1851,7 +1961,12 @@ function renderResult(){
     else { rowDim = dmN[0]; colDim = dmN[1]; }
 
     var pMetric = S.metrics[0];
-    var additive = METRIC_DEF[pMetric].total !== 'rate' && METRIC_DEF[pMetric].total !== 'avg';
+    /* 不能直接相加的指标（去重数/平均/最大/最小）不要出「合计」列 ——
+       除非它是真的把各行加起来 */
+    var pd = METRIC_DEF[pMetric] || {};
+    var additive = (pd.additive !== undefined)
+      ? pd.additive
+      : (pd.total !== 'rate' && pd.total !== 'avg');
     var rv = uniq(out.map(function (o){ return o[rowDim]; })).sort();
     var cv = uniq(out.map(function (o){ return o[colDim]; })).sort();
     var cell = {};
@@ -2118,6 +2233,15 @@ function metaLines(){
                  '（空 ' + b.blank + (b.nonNum ? '，非数字 ' + b.nonNum : '') + '）';
         }).join('；')
       : '没有行因空值被跳过'),
+    /* 合计不是把上面那列加起来，必须写进导出 —— 别人拿计算器一加对不上，会以为工具算错了 */
+    '合计口径：' + ((L.nonAdd && L.nonAdd.length)
+      ? L.nonAdd.map(function (x){
+          return x.unbalanced
+            ? (x.metric + ' 的合计 = 全局平均（非各行平均再平均）')
+            : (x.metric + ' 有 ' + x.shared + ' 个值跨组：列相加 ' + x.sumOver +
+               ' ≠ 真实不重复 ' + x.distinct);
+        }).join('；')
+      : '所选统计项的合计都是把各行相加'),
     S.drill ? '明细范围：只看 ' + S.drill.dim + ' = ' + S.drill.val : '明细范围：全部',
     '导出时间：' + ymd(d) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes())
   ];
